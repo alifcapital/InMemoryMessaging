@@ -15,7 +15,7 @@ public class MemoryMessagingExtensionsTests : BaseTestEntity
         var messageHandlerType1 = typeof(Domain.Module1.UserCreatedHandler);
         var messageHandlerType2 = typeof(Domain.Module2.UserCreatedHandler);
 
-        var handlersInfo = MemoryMessagingExtensions.GetAllMessagesIncludingHandlers(
+        var handlersInfo = MemoryMessagingExtensions.GetAllMessageTypesIncludingHandlers(
             [typeof(MemoryMessagingExtensionsTests).Assembly]
         );
 

@@ -37,7 +37,7 @@ public static class MemoryMessagingExtensions
     private static void RegisterAllMessageHandlers(MemoryMessagingManager subscriberManager,
         Assembly[] assemblies)
     {
-        var allMessagesIncludingHandlers = GetAllMessagesIncludingHandlers(assemblies);
+        var allMessagesIncludingHandlers = GetAllMessageTypesIncludingHandlers(assemblies);
 
         foreach (var (messageType, messageHandlerTypes) in allMessagesIncludingHandlers)
             subscriberManager.AddHandlers(messageType, messageHandlerTypes.ToArray());
@@ -46,7 +46,7 @@ public static class MemoryMessagingExtensions
     internal static void RegisterAllSubscriberReceiversToDependencyInjection(IServiceCollection services,
         Assembly[] assemblies)
     {
-        var allMessagesIncludingHandlers = GetAllMessagesIncludingHandlers(assemblies);
+        var allMessagesIncludingHandlers = GetAllMessageTypesIncludingHandlers(assemblies);
 
         foreach (var (_, messageHandlerTypes) in allMessagesIncludingHandlers)
         {
@@ -63,7 +63,7 @@ public static class MemoryMessagingExtensions
     /// </summary>
     /// <param name="assemblies">The assemblies to find all message handlers</param>
     /// <returns>All message types including the message handler type</returns>
-    internal static Dictionary<Type, List<Type>> GetAllMessagesIncludingHandlers(Assembly[] assemblies)
+    internal static Dictionary<Type, List<Type>> GetAllMessageTypesIncludingHandlers(Assembly[] assemblies)
     {
         Dictionary<Type, List<Type>> massageHandlerTypes = [];
         if (assemblies is null) return massageHandlerTypes;
