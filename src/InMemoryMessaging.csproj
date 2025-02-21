@@ -14,7 +14,7 @@
         <NeutralLanguage>en</NeutralLanguage>
         <PackageId>AlifCapital.InMemoryMessaging</PackageId>
         <AssemblyName>AlifCapital.InMemoryMessaging</AssemblyName>
-        <Version>1.0.2</Version>
+        <Version>1.0.3</Version>
     </PropertyGroup>
 
     <ItemGroup>
