@@ -9,6 +9,7 @@ public class UserCreatedHandler1(ILogger<UserCreatedHandler1> logger) : IMessage
     {
         message.Counter++;
         logger.LogInformation("UserCreatedHandler: {Id} - {Name}, Executed count:{Counter}", message.UserId, message.UserName, message.Counter);
+        logger.LogInformation("Message ({MessageType}): '{UserName}' user is created with the {UserId} id", message.GetType().Name, message.UserName, message.UserId);
 
         await Task.CompletedTask;
     }

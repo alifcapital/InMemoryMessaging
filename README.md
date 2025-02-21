@@ -67,18 +67,19 @@ Make sure to replace <VERSION> with the correct version of the package you want 
 
 ### How to use the library
 `    
-    Register the nuget package's necessary services to the services of DI in the Program.cs and pass the assemblies to find and load the publishers and subscribers automatically:
+Register the nuget package's necessary services to the services of DI in the Program.cs and pass the assemblies to find and register all message handlers automatically:
 `
 ```
-builder.Services.AddRabbitMQEventBus(builder.Configuration, assemblies: [typeof(Program).Assembly]);
+Assembly[] assembliesToRegisterMessageHandlers = [typeof(Program).Assembly];
+builder.Services.AddInMemoryMessaging(assembliesToRegisterMessageHandlers);
 ```
 
 ### Create and publish an event massage
 
-Start creating an event to publish. Your record must implement the `IPublishEvent` interface or inherit from the `PublishEvent` record. Example:
+Start creating a message to publish. Your record must implement the `IMemoryMessaging` interface. Example:
 
 ```
-public record UserDeleted : PublishEvent
+public record UserDeleted : IMemoryMessaging
 {
     public Guid UserId { get; init; }
     
@@ -86,71 +87,41 @@ public record UserDeleted : PublishEvent
 }
 ```
 
-To publish your event, you must first inject the `IEventPublisherManager` interface from the DI and pass your event object to the `PublishAsync` method. Then, your event will be published.
+### Create a handler to the message
+
+To subscribe necessary a message, you need to create a message handler to receive and handler a message. Your message handler class must implement the `IMessageHandler<>` interface and implement the handler method. Example:
 
 ```
-public class UserController : ControllerBase
+public class UserCreatedHandler(ILogger<UserCreatedHandler1> logger) : IEventSubscriber<UserCreated>
 {
-    private readonly IEventPublisherManager _eventPublisherManager;
-
-    public UserController(IEventPublisherManager eventPublisherManager)
+    public async Task HandleAsync(UserCreated message)
     {
-        _eventPublisherManager = eventPublisherManager;
-    }
-    
-    [HttpPost]
-    public IActionResult Create([FromBody] User item)
-    {
-        Items.Add(item.Id, item);
-
-        var userCreated = new UserCreated { UserId = item.Id, UserName = item.Name };
-        _eventPublisherManager.Publish(userCreated);
-        
-        return Ok(item);
-    }
-}
-```
-
-### Create a subscriber to the event
-
-If you want to subscribe to necessary an event, first you need to create your own an event structure to subscribe. Your subscribe record must implement the `ISubscribeEvent` interface or inherit from the `SubscribeEvent` record. Example:
-
-```
-public record UserCreated : SubscribeEvent
-{
-    public Guid UserId { get; init; }
-
-    public string UserName { get; init; }
-}
-```
-
-Then you need to create an event subscriber to receive an event. Your event subscriber class must implement the `IEventSubscriber<>` interface and implement your subscriber event structure. Example:
-
-```
-public class UserCreatedSubscriber : IEventSubscriber<UserCreated>
-{
-    private readonly ILogger<UserCreatedSubscriber> _logger;
-
-    public UserCreatedSubscriber(ILogger<UserCreatedSubscriber> logger)
-    {
-        _logger = logger;
-    }
-
-    public async Task HandleAsync(UserCreated @event)
-    {
-        _logger.LogInformation("EventId ({EventId}): '{UserName}' user is created with the {UserId} id", @event.EventId,
-            @event.UserName, @event.UserId);
+        logger.LogInformation("Message ({MessageType}): '{UserName}' user is created with the {UserId} id", message.GetType().Name, message.UserName, message.UserId);
 
         await Task.CompletedTask;
     }
 }
 ```
 
-Depend on your business logic, you need to add your logic to the `HandleAsync` method of subscriber to do something based on your received event.
+Depend on your business logic, you need to add your logic to the `HandleAsync` method of handler to do something based on your received message.
 
+### How to publish a message
 
-### Can we create multiple event publishers for the same event type?
-No, we can't. If we try to create multiple event publishers for the same event type, it will throw an exception. The library is designed to work with a single event publisher for each event type.
+To publish a message, you must first inject the `IMemoryMessagingManager` interface from the DI and pass your message object to the `PublishAsync` method. Then, your message will be published.
 
-### Can we create multiple event subscribers for the same event type?
-Yes, we can. The library is designed to work with multiple event subscribers for the same event type, even if there are multiple event types with the same name, we support them. So, when event received, all event subscribers of event will be executed.
+```
+public class UserController(IMemoryMessagingManager memoryMessagingManager) : ControllerBase
+{
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] User item)
+    {
+        var userCreated = new UserCreated { UserId = item.Id, UserName = item.Name };
+        await memoryMessagingManager.PublishAsync(userCreated);
+        
+        return Ok(item);
+    }
+}
+```
+
+### Can we create multiple message handlers for the same event type?
+Yes, we can. The library is designed to work with multiple a message handlers for the message event type, even if there are multiple message types with the same name, we support them. So, when a message received, all handlers of a message will be executed.
