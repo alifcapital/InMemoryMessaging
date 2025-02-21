@@ -92,7 +92,7 @@ public record UserDeleted : IMemoryMessaging
 To subscribe necessary a message, you need to create a message handler to receive and handler a message. Your message handler class must implement the `IMessageHandler<>` interface and implement the handler method. Example:
 
 ```
-public class UserCreatedHandler(ILogger<UserCreatedHandler1> logger) : IEventSubscriber<UserCreated>
+public class UserCreatedHandler(ILogger<UserCreatedHandler> logger) : IMessageHandler<UserCreated>
 {
     public async Task HandleAsync(UserCreated message)
     {
