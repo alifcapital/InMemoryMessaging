@@ -10,7 +10,7 @@ public static class InstrumentationBuilderExtensions
     /// </summary>
     /// <param name="builder"><see cref="T:OpenTelemetry.Trace.TracerProviderBuilder" /> being configured.</param>
     /// <returns>The instance of <see cref="T:OpenTelemetry.Trace.TracerProviderBuilder" /> to chain the calls.</returns>
-    public static TracerProviderBuilder AddMemoryMessagingInstrumentation(this TracerProviderBuilder builder)
+    public static TracerProviderBuilder AddInMemoryMessagingInstrumentation(this TracerProviderBuilder builder)
     {
         builder.AddSource(InMemoryMessagingTraceInstrumentation.InstrumentationName);
         
