@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Title>InMemoryMessaging</Title>
+        <Authors>MirolimMajidov</Authors>
+        <Description>InMemoryMessaging is a lightweight, high-performance in-memory messaging library designed for seamless domain event publishing and handling.</Description>
+        <PackageProjectUrl>https://github.com/alifcapital/InMemoryMessaging</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/alifcapital/InMemoryMessaging</RepositoryUrl>
+        <RepositoryType>private</RepositoryType>
+        <PackageTags>InMemoryMessaging, in-memory messaging, in-process messaging, messaging</PackageTags>
+        <Company>Alif Capital</Company>
+        <NeutralLanguage>en</NeutralLanguage>
+        <PackageId>AlifCapital.InMemoryMessaging</PackageId>
+        <AssemblyName>AlifCapital.InMemoryMessaging</AssemblyName>
+        <Version>1.0.0</Version>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="OpenTelemetry" Version="1.10.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+            <_Parameter1>InMemoryMessaging.Tests</_Parameter1>
+        </AssemblyAttribute>
+        <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
+    </ItemGroup>
+
+</Project>
