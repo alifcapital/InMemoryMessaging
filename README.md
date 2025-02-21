@@ -123,5 +123,5 @@ public class UserController(IMemoryMessagingManager memoryMessagingManager) : Co
 }
 ```
 
-### Can we create multiple message handlers for the same event type?
-Yes, we can. The library is designed to work with multiple a message handlers for the message event type, even if there are multiple message types with the same name, we support them. So, when a message received, all handlers of a message will be executed.
+### Can we create a multiple message handlers for the same message/event type?
+Yes, we can. The library is designed to work with multiple a message handlers for the message type, even if there are multiple message types with the same name, we support them. So, when a message received, all handlers of a message will be executed.
