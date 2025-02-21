@@ -1,5 +1,5 @@
 ## InMemoryMessaging
-InMemoryMessaging is a lightweight, high-performance in-memory messaging library designed for seamless domain event publishing and handling. It implements the mediator design pattern, that helps manage complexity in applications by reducing dependencies between objects. Built with Domain-Driven Design (DDD) principles in mind, it ensures smooth communication between aggregates without direct dependencies.
+`InMemoryMessaging` is a lightweight, high-performance in-memory messaging library designed for seamless domain event publishing and handling. It implements the mediator design pattern, that helps manage complexity in applications by reducing dependencies between objects. Built with Domain-Driven Design (DDD) principles in mind, it ensures smooth communication between aggregates without direct dependencies.
 
 ### Setting up the library
 
@@ -66,9 +66,9 @@ Or add it to your .csproj file:
 Make sure to replace <VERSION> with the correct version of the package you want to install.
 
 ### How to use the library
-`    
-Register the nuget package's necessary services to the services of DI in the Program.cs and pass the assemblies to find and register all message handlers automatically:
-`
+  
+Register the nuget package's necessary services to the services of DI in the `Program.cs` and pass the assemblies to find and register all message handlers automatically:
+
 ```
 Assembly[] assembliesToRegisterMessageHandlers = [typeof(Program).Assembly];
 builder.Services.AddInMemoryMessaging(assembliesToRegisterMessageHandlers);
