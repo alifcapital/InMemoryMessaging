@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Reflection;
 using InMemoryMessaging.EventArgs;
 using InMemoryMessaging.Exceptions;
 using InMemoryMessaging.Instrumentation.Trace;
@@ -10,7 +9,7 @@ namespace InMemoryMessaging.Managers;
 
 internal class MemoryMessagingManager(IServiceProvider serviceProvider) : IMemoryMessagingManager
 {
-    private static readonly Dictionary<string, (Type handlerType, MethodInfo handleMethod)[]> AllHandlers = new();
+    private static readonly Dictionary<string, MessageHandlerInformation[]> AllHandlers = new();
     
     /// <summary>
     /// The event to be executed before executing the handlers of the message.
@@ -31,8 +30,12 @@ internal class MemoryMessagingManager(IServiceProvider serviceProvider) : IMemor
             var handleMethod = handlerType.GetMethod(handleMethodName);
             if (handleMethod is null)
                 throw new InMemoryMessagingException($"The handler '{handlerType.Name}' must implement the '{handleMethodName}' method.");
-            
-            return (handlerType, handleMethod);
+
+            return new MessageHandlerInformation
+            {
+                MessageHandlerType = handlerType,
+                HandleMethod = handleMethod
+            };
         }).ToArray();
 
         AllHandlers[typeOfMessage.Name] = handlersWithMethod;
@@ -53,10 +56,10 @@ internal class MemoryMessagingManager(IServiceProvider serviceProvider) : IMemor
             using var serviceScope = serviceProvider.CreateScope();
             OnExecutingReceivedMessage(message, serviceScope.ServiceProvider);
             
-            foreach (var (messageHandler, handleMethod) in messageHandlers)
+            foreach (var handlerInfo in messageHandlers)
             {
-                var eventReceiver = serviceScope.ServiceProvider.GetRequiredService(messageHandler);
-                await ((Task)handleMethod.Invoke(eventReceiver, [message]))!;
+                var eventReceiver = serviceScope.ServiceProvider.GetRequiredService(handlerInfo.MessageHandlerType);
+                await ((Task)handlerInfo.HandleMethod.Invoke(eventReceiver, [message]))!;
             }
         }
         catch (Exception ex)

@@ -1,6 +1,7 @@
 using System.Reflection;
 using InMemoryMessaging.Extensions;
 using InMemoryMessaging.Managers;
+using InMemoryMessaging.Models;
 using InMemoryMessaging.Tests.Domain;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -41,12 +42,12 @@ public class MemoryMessagingManagerTests : BaseTestEntity
         Assert.That(handlerTypes, Has.Length.EqualTo(2));
         Assert.Multiple(() =>
         {
-            Assert.That(handlerTypes.Any(h => h.handlerType == messageHandlerType1), Is.True);
-            Assert.That(handlerTypes.Any(h => h.handlerType == messageHandlerType2), Is.True);
+            Assert.That(handlerTypes.Any(h => h.MessageHandlerType == messageHandlerType1), Is.True);
+            Assert.That(handlerTypes.Any(h => h.MessageHandlerType == messageHandlerType2), Is.True);
             
-            var firstHandler = handlerTypes.First(h => h.handlerType == messageHandlerType1);
+            var firstHandler = handlerTypes.First(h => h.MessageHandlerType == messageHandlerType1);
             var handleMethod = messageHandlerType1.GetMethod(nameof(Domain.Module1.UserCreatedHandler.HandleAsync));
-            Assert.That(firstHandler.handleMethod, Is.EqualTo(handleMethod));
+            Assert.That(firstHandler.HandleMethod, Is.EqualTo(handleMethod));
         });
     }
 
@@ -110,7 +111,7 @@ public class MemoryMessagingManagerTests : BaseTestEntity
     /// <summary>
     /// Get the all handlers information from the memory messaging manager
     /// </summary>
-    private Dictionary<string, (Type handlerType, MethodInfo handleMethod)[]> GetAllHandlersInfo()
+    private Dictionary<string, MessageHandlerInformation[]> GetAllHandlersInfo()
     {
         const string handlersFieldName = "AllHandlers";
         var field = typeof(MemoryMessagingManager).GetField(handlersFieldName,
@@ -118,7 +119,7 @@ public class MemoryMessagingManagerTests : BaseTestEntity
         Assert.That(handlersFieldName, Is.Not.Null);
 
         var handlers =
-            (Dictionary<string, (Type handlerType, MethodInfo handleMethod)[]>)field!.GetValue(null);
+            (Dictionary<string, MessageHandlerInformation[]>)field!.GetValue(null);
         return handlers;
     }
 
