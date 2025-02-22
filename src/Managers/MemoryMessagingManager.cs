@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Reflection;
 using InMemoryMessaging.EventArgs;
 using InMemoryMessaging.Exceptions;
 using InMemoryMessaging.Instrumentation.Trace;
@@ -10,7 +9,7 @@ namespace InMemoryMessaging.Managers;
 
 internal class MemoryMessagingManager(IServiceProvider serviceProvider) : IMemoryMessagingManager
 {
-    private readonly Dictionary<string, (Type handlerType, MethodInfo handleMethod)[]> _allHandlers = new();
+    private static readonly Dictionary<string, MessageHandlerInformation[]> AllHandlers = new();
     
     /// <summary>
     /// The event to be executed before executing the handlers of the message.
@@ -22,7 +21,7 @@ internal class MemoryMessagingManager(IServiceProvider serviceProvider) : IMemor
     /// </summary>
     /// <param name="typeOfMessage">The type of the message.</param>
     /// <param name="typesOfHandler">The types of the handler.</param>
-    internal void AddHandlers(Type typeOfMessage, Type[] typesOfHandler)
+    internal static void AddHandlers(Type typeOfMessage, Type[] typesOfHandler)
     {
        const string handleMethodName = nameof(IMessageHandler<IMessage>.HandleAsync);
        
@@ -31,17 +30,21 @@ internal class MemoryMessagingManager(IServiceProvider serviceProvider) : IMemor
             var handleMethod = handlerType.GetMethod(handleMethodName);
             if (handleMethod is null)
                 throw new InMemoryMessagingException($"The handler '{handlerType.Name}' must implement the '{handleMethodName}' method.");
-            
-            return (handlerType, handleMethod);
+
+            return new MessageHandlerInformation
+            {
+                MessageHandlerType = handlerType,
+                HandleMethod = handleMethod
+            };
         }).ToArray();
 
-        _allHandlers[typeOfMessage.Name] = handlersWithMethod;
+        AllHandlers[typeOfMessage.Name] = handlersWithMethod;
     }
 
     public async Task PublishAsync<TMessage>(TMessage message) where TMessage : class, IMessage
     {
         var messageName = message.GetType().Name;
-        if (!_allHandlers.TryGetValue(messageName, out var messageHandlers) || messageHandlers.Length == 0)
+        if (!AllHandlers.TryGetValue(messageName, out var messageHandlers) || messageHandlers.Length == 0)
             return;
 
         try
@@ -49,14 +52,12 @@ internal class MemoryMessagingManager(IServiceProvider serviceProvider) : IMemor
             var traceParentId = Activity.Current?.Id;
             using var activity = InMemoryMessagingTraceInstrumentation.StartActivity($"Executing handlers of the '{messageName}' memory message.", ActivityKind.Producer, traceParentId);
             
-            //Create a new scope to execute the handler service as a scoped service for each a message.
-            using var serviceScope = serviceProvider.CreateScope();
-            OnExecutingReceivedMessage(message, serviceScope.ServiceProvider);
+            OnExecutingReceivedMessage(message);
             
-            foreach (var (messageHandler, handleMethod) in messageHandlers)
+            foreach (var handlerInfo in messageHandlers)
             {
-                var eventReceiver = serviceScope.ServiceProvider.GetRequiredService(messageHandler);
-                await ((Task)handleMethod.Invoke(eventReceiver, [message]))!;
+                var eventReceiver = serviceProvider.GetRequiredService(handlerInfo.MessageHandlerType);
+                await ((Task)handlerInfo.HandleMethod.Invoke(eventReceiver, [message]))!;
             }
         }
         catch (Exception ex)
@@ -71,13 +72,12 @@ internal class MemoryMessagingManager(IServiceProvider serviceProvider) : IMemor
     /// Invokes the ExecutingMessageHandlers event to be able to execute another an action before the handler.
     /// </summary>
     /// <param name="message">Executing a message</param>
-    /// <param name="provider">The IServiceProvider used to resolve dependencies from the scope.</param>
-    private void OnExecutingReceivedMessage(IMessage message, IServiceProvider provider)
+    private void OnExecutingReceivedMessage(IMessage message)
     {
         if (ExecutingMessageHandlers is null)
             return;
 
-        var eventArgs = new ReceivedMessageArgs(message, provider);
+        var eventArgs = new ReceivedMessageArgs(message, serviceProvider);
         ExecutingMessageHandlers.Invoke(this, eventArgs);
     }
 

@@ -125,3 +125,7 @@ public class UserController(IMemoryMessagingManager memoryMessagingManager) : Co
 
 ### Can we create a multiple message handlers for the same message/event type?
 Yes, we can. The library is designed to work with multiple a message handlers for the message type, even if there are multiple message types with the same name, we support them. So, when a message received, all handlers of a message will be executed.
+
+### What Dependency Injection scope is used for the message handlers?
+The library registers the `IMemoryMessagingManager` interface as a `Scoped` service. This means that all message handlers are created within the same scope as the request. It means that the scope of your service that is used to publish a message is the same as the scope of the message handler.
+

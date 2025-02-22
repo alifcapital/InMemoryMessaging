@@ -18,45 +18,44 @@ public static class MemoryMessagingExtensions
         Assembly[] assemblies,
         EventHandler<ReceivedMessageArgs> executingReceivedMessage = null)
     {
-        services.AddSingleton<IMemoryMessagingManager>(serviceProvider =>
-        {
-            var publisherManager = new MemoryMessagingManager(serviceProvider);
-            RegisterAllMessageHandlers(publisherManager, assemblies);
-            
-            return publisherManager;
-        });
+        services.AddScoped<IMemoryMessagingManager, MemoryMessagingManager>();
 
-        RegisterAllSubscriberReceiversToDependencyInjection(services, assemblies);
+        RegisterAllMessageHandlersToDependencyInjectionAndMessagingManager(services, assemblies);
         
         if (executingReceivedMessage is not null)
             MemoryMessagingManager.ExecutingMessageHandlers += executingReceivedMessage;
     }
     
-    #region Message Handlers
+    #region Message Handlers Registration
 
-    private static void RegisterAllMessageHandlers(MemoryMessagingManager subscriberManager,
+    internal static void RegisterAllMessageHandlersToDependencyInjectionAndMessagingManager(IServiceCollection services,
         Assembly[] assemblies)
     {
         var allMessagesIncludingHandlers = GetAllMessageTypesIncludingHandlers(assemblies);
 
-        foreach (var (messageType, messageHandlerTypes) in allMessagesIncludingHandlers)
-            subscriberManager.AddHandlers(messageType, messageHandlerTypes.ToArray());
-    }
+        RegisterAllSubscriberReceiversToDependencyInjection();
+        RegisterAllSubscriberReceiversToMemoryMessagingManager();
+        
+        return;
 
-    internal static void RegisterAllSubscriberReceiversToDependencyInjection(IServiceCollection services,
-        Assembly[] assemblies)
-    {
-        var allMessagesIncludingHandlers = GetAllMessageTypesIncludingHandlers(assemblies);
-
-        foreach (var (_, messageHandlerTypes) in allMessagesIncludingHandlers)
+        void RegisterAllSubscriberReceiversToDependencyInjection()
         {
-            foreach (var messageHandlerType in messageHandlerTypes)
-                services.AddTransient(messageHandlerType);
+            foreach (var (_, messageHandlerTypes) in allMessagesIncludingHandlers)
+            {
+                foreach (var messageHandlerType in messageHandlerTypes)
+                    services.AddTransient(messageHandlerType);
+            }
+        }
+
+        void RegisterAllSubscriberReceiversToMemoryMessagingManager()
+        {
+            foreach (var (messageType, messageHandlerTypes) in allMessagesIncludingHandlers)
+                MemoryMessagingManager.AddHandlers(messageType, messageHandlerTypes.ToArray());
         }
     }
 
-    static readonly Type MessageHandlerType = typeof(IMessageHandler<>);
-    static readonly Type IMassageType = typeof(IMessage);
+    private static readonly Type MessageHandlerType = typeof(IMessageHandler<>);
+    private static readonly Type IMassageType = typeof(IMessage);
 
     /// <summary>
     /// Get all message types from the assemblies including the message handler types.
