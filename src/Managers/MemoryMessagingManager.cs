@@ -52,13 +52,11 @@ internal class MemoryMessagingManager(IServiceProvider serviceProvider) : IMemor
             var traceParentId = Activity.Current?.Id;
             using var activity = InMemoryMessagingTraceInstrumentation.StartActivity($"Executing handlers of the '{messageName}' memory message.", ActivityKind.Producer, traceParentId);
             
-            //Create a new scope to execute the handler service as a scoped service for each a message.
-            using var serviceScope = serviceProvider.CreateScope();
-            OnExecutingReceivedMessage(message, serviceScope.ServiceProvider);
+            OnExecutingReceivedMessage(message);
             
             foreach (var handlerInfo in messageHandlers)
             {
-                var eventReceiver = serviceScope.ServiceProvider.GetRequiredService(handlerInfo.MessageHandlerType);
+                var eventReceiver = serviceProvider.GetRequiredService(handlerInfo.MessageHandlerType);
                 await ((Task)handlerInfo.HandleMethod.Invoke(eventReceiver, [message]))!;
             }
         }
@@ -74,13 +72,12 @@ internal class MemoryMessagingManager(IServiceProvider serviceProvider) : IMemor
     /// Invokes the ExecutingMessageHandlers event to be able to execute another an action before the handler.
     /// </summary>
     /// <param name="message">Executing a message</param>
-    /// <param name="provider">The IServiceProvider used to resolve dependencies from the scope.</param>
-    private void OnExecutingReceivedMessage(IMessage message, IServiceProvider provider)
+    private void OnExecutingReceivedMessage(IMessage message)
     {
         if (ExecutingMessageHandlers is null)
             return;
 
-        var eventArgs = new ReceivedMessageArgs(message, provider);
+        var eventArgs = new ReceivedMessageArgs(message, serviceProvider);
         ExecutingMessageHandlers.Invoke(this, eventArgs);
     }
 
