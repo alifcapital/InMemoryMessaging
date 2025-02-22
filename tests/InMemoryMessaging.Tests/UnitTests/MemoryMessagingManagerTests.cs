@@ -10,23 +10,17 @@ namespace InMemoryMessaging.Tests.UnitTests;
 public class MemoryMessagingManagerTests : BaseTestEntity
 {
     private readonly ServiceProvider _serviceProvider;
-    private MemoryMessagingManager _memoryMessagingManager;
 
     #region SutUp
 
     public MemoryMessagingManagerTests()
     {
         ServiceCollection serviceCollection = new();
-        MemoryMessagingExtensions.RegisterAllSubscriberReceiversToDependencyInjection
-            (serviceCollection, [typeof(MemoryMessagingExtensionsTests).Assembly]);
+        Assembly[] assemblies = [typeof(MemoryMessagingManagerTests).Assembly];
+        MemoryMessagingExtensions.RegisterAllMessageHandlersToDependencyInjectionAndMessagingManager
+            (serviceCollection, assemblies);
 
         _serviceProvider = serviceCollection.BuildServiceProvider();
-    }
-
-    [SetUp]
-    public void Setup()
-    {
-        _memoryMessagingManager = new MemoryMessagingManager(_serviceProvider);
     }
 
     #endregion
@@ -34,53 +28,12 @@ public class MemoryMessagingManagerTests : BaseTestEntity
     #region AddHandlers
 
     [Test]
-    public void AddHandlers_JustCreatedManager_ShouldReturnEmpty()
-    {
-        var handlersInfo = GetAllHandlersInfo();
-        Assert.That(handlersInfo, Is.Empty);
-    }
-
-    [Test]
-    public void AddHandlers_AddedOneHandler_ShouldReturnOneMessageTypeWithOneHandlerInfo()
-    {
-        var messageType = typeof(UserCreated);
-        var messageHandlerType1 = typeof(Domain.Module1.UserCreatedHandler);
-        _memoryMessagingManager.AddHandlers(messageType, [messageHandlerType1]);
-
-        var handlersInfo = GetAllHandlersInfo();
-        Assert.That(handlersInfo.ContainsKey(messageType.Name), Is.True);
-
-        var handlerTypes = handlersInfo[messageType.Name];
-        Assert.That(handlerTypes, Has.Length.EqualTo(1));
-        Assert.That(handlerTypes[0].handlerType, Is.EqualTo(messageHandlerType1));
-
-        var handleMethod = messageHandlerType1.GetMethod(nameof(Domain.Module1.UserCreatedHandler.HandleAsync));
-        Assert.That(handlerTypes[0].handleMethod, Is.EqualTo(handleMethod));
-    }
-
-    [Test]
-    public void AddHandlers_AddedOneHandlerTwice_ShouldReturnOneMessageTypeWithOneHandlerInfo()
-    {
-        var messageType = typeof(UserCreated);
-        var messageHandlerType1 = typeof(Domain.Module1.UserCreatedHandler);
-        _memoryMessagingManager.AddHandlers(messageType, [messageHandlerType1]);
-        _memoryMessagingManager.AddHandlers(messageType, [messageHandlerType1]);
-
-        var handlersInfo = GetAllHandlersInfo();
-        Assert.That(handlersInfo.ContainsKey(messageType.Name), Is.True);
-
-        var handlerTypes = handlersInfo[messageType.Name];
-        Assert.That(handlerTypes, Has.Length.EqualTo(1));
-    }
-
-    [Test]
-    public void AddHandlers_AddedTwoHandlers_ShouldReturnOneMessageTypeWithTwoHandlersInfo()
+    public void AddHandlers_RegisteringHandlersWhileSettingUpTest_ShouldReturnOneMessageTypeWithTwoHandlerInfo()
     {
         var messageType = typeof(UserCreated);
         var messageHandlerType1 = typeof(Domain.Module1.UserCreatedHandler);
         var messageHandlerType2 = typeof(Domain.Module2.UserCreatedHandler);
-        _memoryMessagingManager.AddHandlers(messageType, [messageHandlerType1, messageHandlerType2]);
-
+        
         var handlersInfo = GetAllHandlersInfo();
         Assert.That(handlersInfo.ContainsKey(messageType.Name), Is.True);
 
@@ -90,9 +43,28 @@ public class MemoryMessagingManagerTests : BaseTestEntity
         {
             Assert.That(handlerTypes.Any(h => h.handlerType == messageHandlerType1), Is.True);
             Assert.That(handlerTypes.Any(h => h.handlerType == messageHandlerType2), Is.True);
+            
+            var firstHandler = handlerTypes.First(h => h.handlerType == messageHandlerType1);
+            var handleMethod = messageHandlerType1.GetMethod(nameof(Domain.Module1.UserCreatedHandler.HandleAsync));
+            Assert.That(firstHandler.handleMethod, Is.EqualTo(handleMethod));
         });
     }
 
+    [Test]
+    public void AddHandlers_RegisteringMessageTypeWithHandlersTwice_MessageHandlersInformationShouldBeSameAsBefore()
+    {
+        var messageType = typeof(UserCreated);
+        var messageHandlerType1 = typeof(Domain.Module1.UserCreatedHandler);
+        var messageHandlerType2 = typeof(Domain.Module2.UserCreatedHandler);
+        MemoryMessagingManager.AddHandlers(messageType, [messageHandlerType1, messageHandlerType2]);
+
+        var handlersInfo = GetAllHandlersInfo();
+        Assert.That(handlersInfo.ContainsKey(messageType.Name), Is.True);
+
+        var handlerTypes = handlersInfo[messageType.Name];
+        Assert.That(handlerTypes, Has.Length.EqualTo(2));
+    }
+    
     #endregion
 
     #region PublishAsync
@@ -101,8 +73,10 @@ public class MemoryMessagingManagerTests : BaseTestEntity
     public async Task
         PublishAsync_PublishingMessageWhichDoesNotHaveHandler_ShouldNotBeExecuted()
     {
+        var memoryMessagingManager = new MemoryMessagingManager(_serviceProvider);
         var message = new UserUpdated();
-        await _memoryMessagingManager.PublishAsync(message);
+        
+        await memoryMessagingManager.PublishAsync(message);
         
         Assert.That(message.Counter, Is.EqualTo(0));
     }
@@ -111,13 +85,10 @@ public class MemoryMessagingManagerTests : BaseTestEntity
     public async Task
         PublishAsync_PublishingMessageWhichHasTwoHandlers_ShouldBeExecutedTwice()
     {
-        var messageType = typeof(UserCreated);
-        var messageHandlerType1 = typeof(Domain.Module1.UserCreatedHandler);
-        var messageHandlerType2 = typeof(Domain.Module2.UserCreatedHandler);
-        _memoryMessagingManager.AddHandlers(messageType, [messageHandlerType1, messageHandlerType2]);
-
+        var memoryMessagingManager = new MemoryMessagingManager(_serviceProvider);
         var message = new UserCreated();
-        await _memoryMessagingManager.PublishAsync(message);
+        
+        await memoryMessagingManager.PublishAsync(message);
         
         Assert.That(message.Counter, Is.EqualTo(2));
     }
@@ -141,13 +112,13 @@ public class MemoryMessagingManagerTests : BaseTestEntity
     /// </summary>
     private Dictionary<string, (Type handlerType, MethodInfo handleMethod)[]> GetAllHandlersInfo()
     {
-        const string handlersFieldName = "_allHandlers";
-        var field = _memoryMessagingManager.GetType().GetField(handlersFieldName,
-            BindingFlags.NonPublic | BindingFlags.Instance);
+        const string handlersFieldName = "AllHandlers";
+        var field = typeof(MemoryMessagingManager).GetField(handlersFieldName,
+            BindingFlags.NonPublic | BindingFlags.Static);
         Assert.That(handlersFieldName, Is.Not.Null);
 
         var handlers =
-            (Dictionary<string, (Type handlerType, MethodInfo handleMethod)[]>)field!.GetValue(_memoryMessagingManager);
+            (Dictionary<string, (Type handlerType, MethodInfo handleMethod)[]>)field!.GetValue(null);
         return handlers;
     }
 

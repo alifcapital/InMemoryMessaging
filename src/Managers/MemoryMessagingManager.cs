@@ -10,7 +10,7 @@ namespace InMemoryMessaging.Managers;
 
 internal class MemoryMessagingManager(IServiceProvider serviceProvider) : IMemoryMessagingManager
 {
-    private readonly Dictionary<string, (Type handlerType, MethodInfo handleMethod)[]> _allHandlers = new();
+    private static readonly Dictionary<string, (Type handlerType, MethodInfo handleMethod)[]> AllHandlers = new();
     
     /// <summary>
     /// The event to be executed before executing the handlers of the message.
@@ -22,7 +22,7 @@ internal class MemoryMessagingManager(IServiceProvider serviceProvider) : IMemor
     /// </summary>
     /// <param name="typeOfMessage">The type of the message.</param>
     /// <param name="typesOfHandler">The types of the handler.</param>
-    internal void AddHandlers(Type typeOfMessage, Type[] typesOfHandler)
+    internal static void AddHandlers(Type typeOfMessage, Type[] typesOfHandler)
     {
        const string handleMethodName = nameof(IMessageHandler<IMessage>.HandleAsync);
        
@@ -35,13 +35,13 @@ internal class MemoryMessagingManager(IServiceProvider serviceProvider) : IMemor
             return (handlerType, handleMethod);
         }).ToArray();
 
-        _allHandlers[typeOfMessage.Name] = handlersWithMethod;
+        AllHandlers[typeOfMessage.Name] = handlersWithMethod;
     }
 
     public async Task PublishAsync<TMessage>(TMessage message) where TMessage : class, IMessage
     {
         var messageName = message.GetType().Name;
-        if (!_allHandlers.TryGetValue(messageName, out var messageHandlers) || messageHandlers.Length == 0)
+        if (!AllHandlers.TryGetValue(messageName, out var messageHandlers) || messageHandlers.Length == 0)
             return;
 
         try
