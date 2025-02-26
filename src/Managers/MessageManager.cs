@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace InMemoryMessaging.Managers;
 
-internal class MemoryMessagingManager(IServiceProvider serviceProvider) : IMemoryMessagingManager
+internal class MessageManager(IServiceProvider serviceProvider) : IMessageManager
 {
     private static readonly Dictionary<string, MessageHandlerInformation[]> AllHandlers = new();
     

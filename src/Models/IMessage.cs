@@ -1,7 +1,7 @@
 namespace InMemoryMessaging.Models;
 
 /// <summary>
-/// The base interface for all kind of messages/events.
+/// An interface for finding all events that need to be communicat through memory.
 /// </summary>
 public interface IMessage
 {

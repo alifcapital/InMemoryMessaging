@@ -2,11 +2,11 @@ using InMemoryMessaging.Models;
 
 namespace UsersService.Messaging.Events;
 
-public record UserCreated : IMemoryMessaging
+public record UserCreated : IMessage
 {
-    public Guid UserId { get; init; }
+    public required Guid UserId { get; init; }
     
-    public string UserName { get; init; }
+    public required string UserName { get; init; }
     
     /// <summary>
     /// Fpr counting the number of times the message has been handled.

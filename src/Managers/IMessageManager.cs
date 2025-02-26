@@ -5,7 +5,7 @@ namespace InMemoryMessaging.Managers;
 /// <summary>
 /// The interface to implement the memory messaging functionality.
 /// </summary>
-public interface IMemoryMessagingManager
+public interface IMessageManager
 {
     /// <summary>
     /// Publishing a message through the memory.

@@ -1,11 +1,11 @@
 using InMemoryMessaging.Models;
 namespace InMemoryMessaging.Tests.Domain;
 
-public record UserCreated : IMemoryMessaging
+public record UserCreated : IMessage
 {
-    public Guid Id { get; init; }
+    public required Guid Id { get; init; }
     
-    public string Name { get; init; }
+    public required string Name { get; init; }
     
     /// <summary>
     /// Fpr counting the number of times the message has been handled.
