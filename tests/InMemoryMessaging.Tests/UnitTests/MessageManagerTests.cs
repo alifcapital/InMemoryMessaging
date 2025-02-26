@@ -8,16 +8,16 @@ using NUnit.Framework;
 
 namespace InMemoryMessaging.Tests.UnitTests;
 
-public class MemoryMessagingManagerTests : BaseTestEntity
+public class MessageManagerTests : BaseTestEntity
 {
     private readonly ServiceProvider _serviceProvider;
 
     #region SutUp
 
-    public MemoryMessagingManagerTests()
+    public MessageManagerTests()
     {
         ServiceCollection serviceCollection = new();
-        Assembly[] assemblies = [typeof(MemoryMessagingManagerTests).Assembly];
+        Assembly[] assemblies = [typeof(MessageManagerTests).Assembly];
         MemoryMessagingExtensions.RegisterAllMessageHandlersToDependencyInjectionAndMessagingManager
             (serviceCollection, assemblies);
 
@@ -57,7 +57,7 @@ public class MemoryMessagingManagerTests : BaseTestEntity
         var messageType = typeof(UserCreated);
         var messageHandlerType1 = typeof(Domain.Module1.UserCreatedHandler);
         var messageHandlerType2 = typeof(Domain.Module2.UserCreatedHandler);
-        MemoryMessagingManager.AddHandlers(messageType, [messageHandlerType1, messageHandlerType2]);
+        MessageManager.AddHandlers(messageType, [messageHandlerType1, messageHandlerType2]);
 
         var handlersInfo = GetAllHandlersInfo();
         Assert.That(handlersInfo.ContainsKey(messageType.Name), Is.True);
@@ -74,8 +74,12 @@ public class MemoryMessagingManagerTests : BaseTestEntity
     public async Task
         PublishAsync_PublishingMessageWhichDoesNotHaveHandler_ShouldNotBeExecuted()
     {
-        var memoryMessagingManager = new MemoryMessagingManager(_serviceProvider);
-        var message = new UserUpdated();
+        var memoryMessagingManager = new MessageManager(_serviceProvider);
+        var message = new UserUpdated
+        {
+           Id = Guid.NewGuid(),
+           Name = "User Name"
+        };
         
         await memoryMessagingManager.PublishAsync(message);
         
@@ -86,8 +90,12 @@ public class MemoryMessagingManagerTests : BaseTestEntity
     public async Task
         PublishAsync_PublishingMessageWhichHasTwoHandlers_ShouldBeExecutedTwice()
     {
-        var memoryMessagingManager = new MemoryMessagingManager(_serviceProvider);
-        var message = new UserCreated();
+        var memoryMessagingManager = new MessageManager(_serviceProvider);
+        var message = new UserCreated
+        {
+            Id = Guid.NewGuid(),
+            Name = "User Name"
+        };
         
         await memoryMessagingManager.PublishAsync(message);
         
@@ -114,7 +122,7 @@ public class MemoryMessagingManagerTests : BaseTestEntity
     private Dictionary<string, MessageHandlerInformation[]> GetAllHandlersInfo()
     {
         const string handlersFieldName = "AllHandlers";
-        var field = typeof(MemoryMessagingManager).GetField(handlersFieldName,
+        var field = typeof(MessageManager).GetField(handlersFieldName,
             BindingFlags.NonPublic | BindingFlags.Static);
         Assert.That(handlersFieldName, Is.Not.Null);
 

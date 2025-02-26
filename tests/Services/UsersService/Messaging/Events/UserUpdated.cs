@@ -2,11 +2,11 @@ using InMemoryMessaging.Models;
 
 namespace UsersService.Messaging.Events;
 
-public record UserUpdated : IMemoryMessaging
+public record UserUpdated : IMessage
 {
-    public Guid UserId { get; init; }
+    public required Guid UserId { get; init; }
     
-    public string OldUserName { get; init; }
+    public required string OldUserName { get; init; }
     
-    public string NewUserName { get; init; }
+    public required string NewUserName { get; init; }
 }

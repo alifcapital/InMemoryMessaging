@@ -76,14 +76,14 @@ builder.Services.AddInMemoryMessaging(assembliesToRegisterMessageHandlers);
 
 ### Create and publish an event massage
 
-Start creating a message to publish. Your record must implement the `IMemoryMessaging` interface. Example:
+Start creating a message to publish. Your record must implement the `IMessage` interface. Example:
 
 ```
-public record UserDeleted : IMemoryMessaging
+public record UserDeleted : IMessage
 {
-    public Guid UserId { get; init; }
+    public required Guid UserId { get; init; }
     
-    public string UserName { get; init; }
+    public required string UserName { get; init; }
 }
 ```
 
@@ -107,16 +107,16 @@ Depend on your business logic, you need to add your logic to the `HandleAsync` m
 
 ### How to publish a message
 
-To publish a message, you must first inject the `IMemoryMessagingManager` interface from the DI and pass your message object to the `PublishAsync` method. Then, your message will be published.
+To publish a message, you must first inject the `IMessageManager` interface from the DI and pass your message object to the `PublishAsync` method. Then, your message will be published.
 
 ```
-public class UserController(IMemoryMessagingManager memoryMessagingManager) : ControllerBase
+public class UserController(IMessageManager messageManager) : ControllerBase
 {
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] User item)
     {
         var userCreated = new UserCreated { UserId = item.Id, UserName = item.Name };
-        await memoryMessagingManager.PublishAsync(userCreated);
+        await messageManager.PublishAsync(userCreated);
         
         return Ok(item);
     }
@@ -127,5 +127,5 @@ public class UserController(IMemoryMessagingManager memoryMessagingManager) : Co
 Yes, we can. The library is designed to work with multiple a message handlers for the message type, even if there are multiple message types with the same name, we support them. So, when a message received, all handlers of a message will be executed.
 
 ### What Dependency Injection scope is used for the message handlers?
-The library registers the `IMemoryMessagingManager` interface as a `Scoped` service. This means that all message handlers are created within the same scope as the request. It means that the scope of your service that is used to publish a message is the same as the scope of the message handler.
+The library registers the `IMessageManager` interface as a `Scoped` service. This means that all message handlers are created within the same scope as the request. It means that the scope of your service that is used to publish a message is the same as the scope of the message handlers.
 

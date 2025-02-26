@@ -7,7 +7,7 @@ namespace UsersService.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-public class UserController(IMemoryMessagingManager memoryMessagingManager) : ControllerBase
+public class UserController(IMessageManager messageManager) : ControllerBase
 {
     private static readonly Dictionary<Guid, User> Items = new();
 
@@ -32,7 +32,7 @@ public class UserController(IMemoryMessagingManager memoryMessagingManager) : Co
         Items.Add(item.Id, item);
 
         var userCreated = new UserCreated { UserId = item.Id, UserName = item.Name };
-        await memoryMessagingManager.PublishAsync(userCreated);
+        await messageManager.PublishAsync(userCreated);
 
         return Ok();
     }
@@ -46,7 +46,7 @@ public class UserController(IMemoryMessagingManager memoryMessagingManager) : Co
         var userUpdated = new UserUpdated { UserId = item.Id, OldUserName = item.Name, NewUserName = newName };
         item.Name = newName;
         
-        await memoryMessagingManager.PublishAsync(userUpdated);
+        await messageManager.PublishAsync(userUpdated);
 
         return Ok(item);
     }
@@ -59,7 +59,7 @@ public class UserController(IMemoryMessagingManager memoryMessagingManager) : Co
 
         var userDeleted = new UserDeleted { UserId = item.Id, UserName = item.Name };
         Items.Remove(id);
-        await memoryMessagingManager.PublishAsync(userDeleted);
+        await messageManager.PublishAsync(userDeleted);
         
         return Ok(item);
     }

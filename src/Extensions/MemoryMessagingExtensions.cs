@@ -18,12 +18,12 @@ public static class MemoryMessagingExtensions
         Assembly[] assemblies,
         EventHandler<ReceivedMessageArgs> executingReceivedMessage = null)
     {
-        services.AddScoped<IMemoryMessagingManager, MemoryMessagingManager>();
+        services.AddScoped<IMessageManager, MessageManager>();
 
         RegisterAllMessageHandlersToDependencyInjectionAndMessagingManager(services, assemblies);
         
         if (executingReceivedMessage is not null)
-            MemoryMessagingManager.ExecutingMessageHandlers += executingReceivedMessage;
+            MessageManager.ExecutingMessageHandlers += executingReceivedMessage;
     }
     
     #region Message Handlers Registration
@@ -50,7 +50,7 @@ public static class MemoryMessagingExtensions
         void RegisterAllSubscriberReceiversToMemoryMessagingManager()
         {
             foreach (var (messageType, messageHandlerTypes) in allMessagesIncludingHandlers)
-                MemoryMessagingManager.AddHandlers(messageType, messageHandlerTypes.ToArray());
+                MessageManager.AddHandlers(messageType, messageHandlerTypes.ToArray());
         }
     }
 
