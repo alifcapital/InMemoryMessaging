@@ -27,8 +27,4 @@
       <ProjectReference Include="..\..\src\InMemoryMessaging.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="UnitTests\Extensions\" />
-    </ItemGroup>
-
 </Project>
