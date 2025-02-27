@@ -1,6 +1,6 @@
 namespace InMemoryMessaging.Tests.Domain;
 
-public record UserUpdated : IDomainEvent
+public record UserDeleted : IDomainEvent
 {
     public required Guid Id { get; init; }
     

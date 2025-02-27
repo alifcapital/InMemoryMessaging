@@ -75,7 +75,7 @@ public class MessageManagerTests : BaseTestEntity
         PublishAsync_PublishingMessageWhichDoesNotHaveHandler_ShouldNotBeExecuted()
     {
         var memoryMessagingManager = new MessageManager(_serviceProvider);
-        var message = new UserUpdated
+        var message = new UserDeleted
         {
            Id = Guid.NewGuid(),
            Name = "User Name"
