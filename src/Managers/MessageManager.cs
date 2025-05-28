@@ -51,7 +51,7 @@ internal class MessageManager(IServiceProvider serviceProvider) : IMessageManage
         try
         {
             var traceParentId = Activity.Current?.Id;
-            using var activity = InMemoryMessagingTraceInstrumentation.StartActivity($"Executing handlers of the '{messageName}' memory message.", ActivityKind.Producer, traceParentId);
+            using var activity = InMemoryMessagingTraceInstrumentation.StartActivity($"DomainEvent: Executing handlers of the '{messageName}' memory message.", ActivityKind.Producer, traceParentId);
             
             OnExecutingReceivedMessage(message);
             
