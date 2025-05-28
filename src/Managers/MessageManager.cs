@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using InMemoryMessaging.EventArgs;
 using InMemoryMessaging.Exceptions;
@@ -9,7 +10,7 @@ namespace InMemoryMessaging.Managers;
 
 internal class MessageManager(IServiceProvider serviceProvider) : IMessageManager
 {
-    private static readonly Dictionary<string, MessageHandlerInformation[]> AllHandlers = new();
+    private static readonly ConcurrentDictionary<string, MessageHandlerInformation[]> AllHandlers = new();
     
     /// <summary>
     /// The event to be executed before executing the handlers of the message.

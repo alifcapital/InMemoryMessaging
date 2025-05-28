@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Reflection;
 using InMemoryMessaging.Extensions;
 using InMemoryMessaging.Managers;
@@ -119,7 +120,7 @@ public class MessageManagerTests : BaseTestEntity
     /// <summary>
     /// Get the all handlers information from the memory messaging manager
     /// </summary>
-    private Dictionary<string, MessageHandlerInformation[]> GetAllHandlersInfo()
+    private ConcurrentDictionary<string, MessageHandlerInformation[]> GetAllHandlersInfo()
     {
         const string handlersFieldName = "AllHandlers";
         var field = typeof(MessageManager).GetField(handlersFieldName,
@@ -127,7 +128,7 @@ public class MessageManagerTests : BaseTestEntity
         Assert.That(handlersFieldName, Is.Not.Null);
 
         var handlers =
-            (Dictionary<string, MessageHandlerInformation[]>)field!.GetValue(null);
+            (ConcurrentDictionary<string, MessageHandlerInformation[]>)field!.GetValue(null);
         return handlers;
     }
 
