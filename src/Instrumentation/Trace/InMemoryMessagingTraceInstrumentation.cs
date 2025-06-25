@@ -13,9 +13,9 @@ internal struct InMemoryMessagingTraceInstrumentation
     internal const string InstrumentationName = "InMemoryMessaging";
     
     /// <summary>
-    /// The key to add/read the id of activity (parent trace and span) to/from the publishing/received events.
+    /// Determines whether the instrumentation is enabled or not.
     /// </summary>
-    public const string TraceParentIdKey = "TraceParentId";
+    public static bool IsEnabled { get; internal set; }
 
     /// <summary>
     /// The activity source to create a new activity
@@ -27,10 +27,12 @@ internal struct InMemoryMessagingTraceInstrumentation
     /// </summary>
     /// <param name="name">Name of new activity</param>
     /// <param name="kind">Type of new activity. The default is <see cref="ActivityKind.Internal"/></param>
-    /// <param name="traceParentId">The id of activity (parent trace and span) to assign. Example: "{version}-{trace-id}-{parent-span-id}-{trace-flags}"</param>
     /// <returns>Newly created an open telemetry activity</returns>
-    internal static Activity StartActivity(string name, ActivityKind kind = ActivityKind.Internal, string traceParentId = null)
+    internal static Activity StartActivity(string name, ActivityKind kind = ActivityKind.Producer)
     {
+        if (!IsEnabled) return null;
+
+        var traceParentId = Activity.Current?.Id;
         ActivityContext.TryParse(traceParentId, null, out ActivityContext parentContext);
         var activity = ActivitySource.StartActivity(name, kind, parentContext);
 
