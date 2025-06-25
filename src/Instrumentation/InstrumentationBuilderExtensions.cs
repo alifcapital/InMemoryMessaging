@@ -13,6 +13,7 @@ public static class InstrumentationBuilderExtensions
     public static TracerProviderBuilder AddInMemoryMessagingInstrumentation(this TracerProviderBuilder builder)
     {
         builder.AddSource(InMemoryMessagingTraceInstrumentation.InstrumentationName);
+        InMemoryMessagingTraceInstrumentation.IsEnabled = true;
         
         return builder;
     }
