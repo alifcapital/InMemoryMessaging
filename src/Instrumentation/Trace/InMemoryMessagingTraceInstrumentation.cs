@@ -39,7 +39,7 @@ internal struct InMemoryMessagingTraceInstrumentation
         if (activity == null) return null;
         
         const string spanTypeTagName = "messaging.system";
-        const string spanTypeValue = "in-memory";
+        const string spanTypeValue = "In-memory";
         activity.AddTag(spanTypeTagName, spanTypeValue);
 
         return activity;
