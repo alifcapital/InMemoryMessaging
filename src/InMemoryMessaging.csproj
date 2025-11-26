@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net9.0</TargetFramework>
+        <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Title>InMemoryMessaging</Title>
         <Authors>MirolimMajidov</Authors>
@@ -14,7 +14,7 @@
         <NeutralLanguage>en</NeutralLanguage>
         <PackageId>AlifCapital.InMemoryMessaging</PackageId>
         <AssemblyName>AlifCapital.InMemoryMessaging</AssemblyName>
-        <Version>1.0.14</Version>
+        <Version>10.0.0</Version>
     </PropertyGroup>
 
     <ItemGroup>
