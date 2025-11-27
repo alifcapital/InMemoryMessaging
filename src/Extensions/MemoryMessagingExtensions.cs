@@ -33,7 +33,7 @@ public static class MemoryMessagingExtensions
     internal static void RegisterAllMessageHandlersToDependencyInjectionAndMessagingManager(IServiceCollection services,
         Assembly[] assemblies, Type baseMassageTypeToFilter = null)
     {
-        var allMessagesIncludingHandlers = GetAllMessageTypesIncludingHandlers(assemblies);
+        var allMessagesIncludingHandlers = GetAllMessageTypesIncludingHandlers(assemblies, baseMassageTypeToFilter);
 
         RegisterAllSubscriberReceiversToDependencyInjection();
         RegisterAllSubscriberReceiversToMemoryMessagingManager();
@@ -58,6 +58,8 @@ public static class MemoryMessagingExtensions
 
     private static readonly Type MessageHandlerType = typeof(IMessageHandler<>);
 
+    private static readonly Type MessageType = typeof(IMessage);
+
     /// <summary>
     /// Get all message types from the assemblies including the message handler types.
     /// </summary>
@@ -66,7 +68,7 @@ public static class MemoryMessagingExtensions
     /// <returns>All message types including the message handler type</returns>
     internal static Dictionary<Type, List<Type>> GetAllMessageTypesIncludingHandlers(Assembly[] assemblies, Type baseMassageTypeToFilter = null)
     {
-        var baseMassageType = baseMassageTypeToFilter ?? typeof(IMessage);
+        var baseMassageType = baseMassageTypeToFilter ?? MessageType;
         Dictionary<Type, List<Type>> massageHandlerTypes = [];
         if (assemblies is null) return massageHandlerTypes;
 
