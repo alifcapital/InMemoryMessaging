@@ -1,7 +1,7 @@
 using InMemoryMessaging.Models;
-using UsersService.Messaging.Events;
+using UsersService.MessagingFirstModule.Events;
 
-namespace UsersService.Messaging.Handlers;
+namespace UsersService.MessagingFirstModule.Handlers;
 
 public class UserDeletedHandler : IMessageHandler<UserDeleted>
 {
