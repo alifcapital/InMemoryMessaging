@@ -16,7 +16,7 @@ internal class MessageManager(IServiceProvider serviceProvider) : IMessageManage
     /// The second inner key is an event type. Since the library can run in modular service, which may have multiple modules and each module may have its own one or many event types with the same name.
     /// And the inner value is a collection of event handles of each event type.  
     /// </summary>
-    private static readonly ConcurrentDictionary<string, Dictionary<Type, MessageHandlerInformation[]>> AllHandlers = new();
+    private static readonly ConcurrentDictionary<string, ConcurrentDictionary<Type, MessageHandlerInformation[]>> AllHandlers = new();
     
     /// <summary>
     /// The event to be executed before executing the handlers of the message.
@@ -24,7 +24,7 @@ internal class MessageManager(IServiceProvider serviceProvider) : IMessageManage
     public static event EventHandler<ReceivedMessageArgs> ExecutingMessageHandlers;
 
     /// <summary>
-    /// Registers a handlers of the message to the memory messaging manager.
+    /// Registers handlers of the message to the memory messaging manager.
     /// </summary>
     /// <param name="typeOfMessage">The type of the message.</param>
     /// <param name="typesOfHandler">The types of the handler.</param>
@@ -45,7 +45,8 @@ internal class MessageManager(IServiceProvider serviceProvider) : IMessageManage
             };
         }).ToArray();
 
-        AllHandlers[typeOfMessage.Name].Add(typeOfMessage, handlersWithMethod);
+        var messageTypeHandlers = AllHandlers.GetOrAdd(typeOfMessage.Name, _ => new ConcurrentDictionary<Type, MessageHandlerInformation[]>());
+        messageTypeHandlers[typeOfMessage] = handlersWithMethod;
     }
 
     public async Task PublishAsync<TMessage>(TMessage message) where TMessage : class, IMessage
@@ -64,18 +65,6 @@ internal class MessageManager(IServiceProvider serviceProvider) : IMessageManage
             
             foreach (var (messageType, messageHandlers) in messageHandlerInformation)
             {
-                TMessage messageToPublish = null;
-                if (messageType == publishingMessageType)
-                {
-                    messageToPublish = message;
-                }
-                else
-                {
-                    // TODO
-                    //I need to create instead of messageType based and copy similar same properties from the main publishing message.
-                    // Because even the message type name is the same, instead of message type can be different, that is may while handling it may throw an exception.
-                }
-                
                 // If the type of publishing and handling message type is not equal, we need to create instead of handling event
                 // and copy its property values from the main publishing message. Otherwise, the message handler may not accept passing the message. 
                 var messageToPublish = messageType == publishingMessageType
@@ -88,7 +77,6 @@ internal class MessageManager(IServiceProvider serviceProvider) : IMessageManage
                     await ((Task)handlerInfo.HandleMethod.Invoke(eventReceiver, [messageToPublish]))!;
                 }
             }
-            
         }
         catch (Exception ex)
         {
