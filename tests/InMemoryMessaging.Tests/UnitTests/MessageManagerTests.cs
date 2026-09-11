@@ -100,8 +100,33 @@ public class MessageManagerTests : BaseTestEntity
         };
         
         await memoryMessagingManager.PublishAsync(message);
-        
+
         Assert.That(message.Counter, Is.EqualTo(2));
+    }
+
+    [Test]
+    public async Task
+        PublishAsync_PublishingMessageWithHandlerExpectingDifferentMessageType_ShouldCloneAndCopyMatchingProperties()
+    {
+        var memoryMessagingManager = new MessageManager(_serviceProvider);
+        var message = new UserCreated
+        {
+            Id = Guid.NewGuid(),
+            Name = "User Name"
+        };
+
+        await memoryMessagingManager.PublishAsync(message);
+
+        var clonedMessage = Domain.Module3.UserCreatedHandler.LastHandledMessage;
+        Assert.That(clonedMessage, Is.Not.Null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(clonedMessage!.Id, Is.EqualTo(message.Id));
+            Assert.That(clonedMessage.Name, Is.EqualTo(message.Name));
+            Assert.That(clonedMessage.Source, Is.EqualTo("Module3"));
+            Assert.That(clonedMessage.HandledCount, Is.EqualTo(1));
+            Assert.That(message.Counter, Is.EqualTo(2));
+        });
     }
 
     #endregion
