@@ -1,6 +1,6 @@
 using InMemoryMessaging.Models;
 
-namespace UsersService.Messaging.Events;
+namespace UsersService.MessagingFirstModule.Events;
 
 public record UserUpdated : IMessage
 {

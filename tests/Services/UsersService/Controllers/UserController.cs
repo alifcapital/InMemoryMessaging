@@ -1,6 +1,6 @@
 using InMemoryMessaging.Managers;
 using Microsoft.AspNetCore.Mvc;
-using UsersService.Messaging.Events;
+using UsersService.MessagingFirstModule.Events;
 using UsersService.Models;
 
 namespace UsersService.Controllers;

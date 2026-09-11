@@ -38,14 +38,15 @@ public class MessageManagerTests : BaseTestEntity
         
         var handlersInfo = GetAllHandlersInfo();
         Assert.That(handlersInfo.ContainsKey(messageType.Name), Is.True);
+        Assert.That(handlersInfo[messageType.Name].ContainsKey(messageType), Is.True);
 
-        var handlerTypes = handlersInfo[messageType.Name];
+        var handlerTypes = handlersInfo[messageType.Name][messageType];
         Assert.That(handlerTypes, Has.Length.EqualTo(2));
         Assert.Multiple(() =>
         {
             Assert.That(handlerTypes.Any(h => h.MessageHandlerType == messageHandlerType1), Is.True);
             Assert.That(handlerTypes.Any(h => h.MessageHandlerType == messageHandlerType2), Is.True);
-            
+
             var firstHandler = handlerTypes.First(h => h.MessageHandlerType == messageHandlerType1);
             var handleMethod = messageHandlerType1.GetMethod(nameof(Domain.Module1.UserCreatedHandler.HandleAsync));
             Assert.That(firstHandler.HandleMethod, Is.EqualTo(handleMethod));
@@ -63,7 +64,7 @@ public class MessageManagerTests : BaseTestEntity
         var handlersInfo = GetAllHandlersInfo();
         Assert.That(handlersInfo.ContainsKey(messageType.Name), Is.True);
 
-        var handlerTypes = handlersInfo[messageType.Name];
+        var handlerTypes = handlersInfo[messageType.Name][messageType];
         Assert.That(handlerTypes, Has.Length.EqualTo(2));
     }
     
@@ -99,8 +100,33 @@ public class MessageManagerTests : BaseTestEntity
         };
         
         await memoryMessagingManager.PublishAsync(message);
-        
+
         Assert.That(message.Counter, Is.EqualTo(2));
+    }
+
+    [Test]
+    public async Task
+        PublishAsync_PublishingMessageWithHandlerExpectingDifferentMessageType_ShouldCloneAndCopyMatchingProperties()
+    {
+        var memoryMessagingManager = new MessageManager(_serviceProvider);
+        var message = new UserCreated
+        {
+            Id = Guid.NewGuid(),
+            Name = "User Name"
+        };
+
+        await memoryMessagingManager.PublishAsync(message);
+
+        var clonedMessage = Domain.Module3.UserCreatedHandler.LastHandledMessage;
+        Assert.That(clonedMessage, Is.Not.Null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(clonedMessage!.Id, Is.EqualTo(message.Id));
+            Assert.That(clonedMessage.Name, Is.EqualTo(message.Name));
+            Assert.That(clonedMessage.Source, Is.EqualTo("Module3"));
+            Assert.That(clonedMessage.HandledCount, Is.EqualTo(1));
+            Assert.That(message.Counter, Is.EqualTo(2));
+        });
     }
 
     #endregion
@@ -120,7 +146,7 @@ public class MessageManagerTests : BaseTestEntity
     /// <summary>
     /// Get the all handlers information from the memory messaging manager
     /// </summary>
-    private ConcurrentDictionary<string, MessageHandlerInformation[]> GetAllHandlersInfo()
+    private ConcurrentDictionary<string, ConcurrentDictionary<Type, MessageHandlerInformation[]>> GetAllHandlersInfo()
     {
         const string handlersFieldName = "AllHandlers";
         var field = typeof(MessageManager).GetField(handlersFieldName,
@@ -128,7 +154,7 @@ public class MessageManagerTests : BaseTestEntity
         Assert.That(handlersFieldName, Is.Not.Null);
 
         var handlers =
-            (ConcurrentDictionary<string, MessageHandlerInformation[]>)field!.GetValue(null);
+            (ConcurrentDictionary<string, ConcurrentDictionary<Type, MessageHandlerInformation[]>>)field!.GetValue(null);
         return handlers;
     }
 
