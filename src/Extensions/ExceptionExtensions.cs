@@ -10,9 +10,9 @@ internal static class ExceptionExtensions
     /// "InvalidOperationException: Could not reserve the order ---> NpgsqlException: connection timeout".
     /// </summary>
     /// <param name="exception">The exception of the failure.</param>
-    /// <param name="options">The settings to know how long the reason may be.</param>
+    /// <param name="options">The options to know how long the reason may be.</param>
     /// <returns>Returns the reason of the failure.</returns>
-    internal static string ToFailureReason(this Exception exception, InMemoryMessagingRetrySettings options)
+    internal static string ToFailureReason(this Exception exception, InMemoryMessagingRetryOptions options)
     {
         var failureReason = new StringBuilder();
         for (var currentException = exception; currentException is not null; currentException = currentException.InnerException)

@@ -15,7 +15,7 @@ namespace InMemoryMessaging.Managers;
 
 internal class MessageManager(
     IServiceProvider serviceProvider,
-    InMemoryMessagingRetrySettings options,
+    InMemoryMessagingRetryOptions options,
     ILogger<MessageManager> logger,
     IFailedMessageRepository failedMessageRepository = null) : IMessageManager
 {
@@ -107,14 +107,14 @@ internal class MessageManager(
     /// <param name="handlersByMessageType">The registered handlers of each type of the message.</param>
     /// <param name="handlerFilter">The full paths of the handlers to execute. Null executes all of them.</param>
     /// <param name="scopedProvider">The service provider to resolve the handlers from.</param>
-    /// <param name="options">The settings of the retry.</param>
+    /// <param name="options">The options of the retry.</param>
     /// <returns>Returns the failure of each handler which has thrown, in the order the handlers were executed.</returns>
     internal static async Task<List<HandlerFailure>> ExecuteHandlersAsync(
         IMessage message,
         ConcurrentDictionary<Type, MessageHandlerInformation[]> handlersByMessageType,
         IReadOnlySet<string> handlerFilter,
         IServiceProvider scopedProvider,
-        InMemoryMessagingRetrySettings options)
+        InMemoryMessagingRetryOptions options)
     {
         var failures = new List<HandlerFailure>();
         var publishingMessageType = message.GetType();

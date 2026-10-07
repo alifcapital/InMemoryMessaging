@@ -17,7 +17,7 @@ internal sealed class FailedMessagesProcessor(
     IServiceScopeFactory serviceScopeFactory,
     IFailedMessageRepository repository,
     IDistributedLockProvider lockProvider,
-    InMemoryMessagingRetrySettings options,
+    InMemoryMessagingRetryOptions options,
     ILogger<FailedMessagesProcessor> logger) : IFailedMessagesProcessor
 {
     #region Retrying the due messages
@@ -76,8 +76,7 @@ internal sealed class FailedMessagesProcessor(
                 "Could not resolve the '{MessageName}' failed in-memory message with the {MessageId} id. Reason: {Reason}",
                 message.MessageName, id, resolvingError);
 
-            await RescheduleAfterAsync(message, TimeSpan.FromMinutes(options.TryAfterMinutesIfMessageOrHandlerNotFound),
-                resolvingError, request, cancellationToken);
+            await MarkAsFailedAsync(message, resolvingError, request, cancellationToken);
             return MessageActionResult.Failed(resolvingError);
         }
 
@@ -86,8 +85,7 @@ internal sealed class FailedMessagesProcessor(
             logger.LogError("Could not read the payload of the failed in-memory message with the {MessageId} id. Reason: {Reason}",
                 id, readingError);
 
-            await RescheduleAfterAsync(message, TimeSpan.FromMinutes(options.TryAfterMinutesIfMessageOrHandlerNotFound),
-                readingError, request, cancellationToken);
+            await MarkAsFailedAsync(message, readingError, request, cancellationToken);
             return MessageActionResult.Failed(readingError);
         }
 
@@ -231,24 +229,6 @@ internal sealed class FailedMessagesProcessor(
         message.TryCount++;
         message.FailureReason = failureReason;
         message.TryAfterAt = DateTimeOffset.UtcNow.Add(GetDelayBeforeNextTry(message.TryCount));
-
-        return SaveAsync(message, request, cancellationToken);
-    }
-
-    /// <summary>
-    /// Counts the attempt, keeps the reason and schedules the next try after the given delay.
-    /// </summary>
-    /// <param name="message">The stored message.</param>
-    /// <param name="delay">How long to wait before the next try.</param>
-    /// <param name="failureReason">The reason of the failure.</param>
-    /// <param name="request">The information of the manual action, or null when the retry is the background one.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    private Task RescheduleAfterAsync(FailedMessage message, TimeSpan delay, string failureReason,
-        MessageActionRequest request, CancellationToken cancellationToken)
-    {
-        message.TryCount++;
-        message.FailureReason = failureReason;
-        message.TryAfterAt = DateTimeOffset.UtcNow.Add(delay);
 
         return SaveAsync(message, request, cancellationToken);
     }

@@ -11,7 +11,7 @@ namespace InMemoryMessaging.BackgroundServices;
 /// </summary>
 internal sealed class FailedMessagesProcessorJob(
     IFailedMessagesProcessor processor,
-    InMemoryMessagingRetrySettings options,
+    InMemoryMessagingRetryOptions options,
     ILogger<FailedMessagesProcessorJob> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken cancellationToken)

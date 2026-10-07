@@ -3,17 +3,17 @@ using InMemoryMessaging.Exceptions;
 namespace InMemoryMessaging.Configurations;
 
 /// <summary>
-/// Checks the settings of the retry on the start of the application, so a wrong value is reported at once rather than
+/// Checks the options of the retry on the start of the application, so a wrong value is reported at once rather than
 /// on the first failed message.
 /// </summary>
-internal static class RetrySettingsValidator
+internal static class RetryOptionsValidator
 {
     /// <summary>
-    /// Checks that the settings of an enabled retry are filled and usable.
+    /// Checks that the options of an enabled retry are filled and usable.
     /// </summary>
-    /// <param name="options">The settings of the retry.</param>
-    /// <exception cref="InMemoryMessagingException">If the retry is enabled, but its settings are wrong.</exception>
-    internal static void Validate(InMemoryMessagingRetrySettings options)
+    /// <param name="options">The options of the retry.</param>
+    /// <exception cref="InMemoryMessagingException">If the retry is enabled, but its options are wrong.</exception>
+    internal static void Validate(InMemoryMessagingRetryOptions options)
     {
         if (!options.IsEnabled)
             return;
@@ -26,7 +26,6 @@ internal static class RetrySettingsValidator
         EnsureIsPositive(options.TryCount, nameof(options.TryCount));
         EnsureIsPositive(options.TryAfterSeconds, nameof(options.TryAfterSeconds));
         EnsureIsPositive(options.TryAfterMinutesIfTryCountExceeded, nameof(options.TryAfterMinutesIfTryCountExceeded));
-        EnsureIsPositive(options.TryAfterMinutesIfMessageOrHandlerNotFound, nameof(options.TryAfterMinutesIfMessageOrHandlerNotFound));
         EnsureIsPositive(options.SecondsToDelayProcessMessages, nameof(options.SecondsToDelayProcessMessages));
         EnsureIsPositive(options.MinutesToDelayAfterFailedRound, nameof(options.MinutesToDelayAfterFailedRound));
         EnsureIsNotNegative(options.MaxFailureReasonLength, nameof(options.MaxFailureReasonLength));

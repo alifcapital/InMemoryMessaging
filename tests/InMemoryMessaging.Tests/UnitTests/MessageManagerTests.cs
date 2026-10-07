@@ -200,7 +200,7 @@ public class MessageManagerTests : BaseTestEntity
     /// </summary>
     private MessageManager CreateManager()
     {
-        return new MessageManager(_serviceProvider, new InMemoryMessagingRetrySettings(), NullLogger<MessageManager>.Instance);
+        return new MessageManager(_serviceProvider, new InMemoryMessagingRetryOptions(), NullLogger<MessageManager>.Instance);
     }
 
     /// <summary>

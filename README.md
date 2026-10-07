@@ -231,10 +231,10 @@ Every option can be set in the lambda instead of the configuration, when the app
 
 ```csharp
 builder.Services.AddInMemoryMessaging(builder.Configuration, assembliesToRegisterMessageHandlers,
-    settings =>
+    options =>
     {
-        settings.IsEnabled = true;
-        settings.ServiceName = "my-service";
+        options.IsEnabled = true;
+        options.ServiceName = "my-service";
     });
 ```
 
@@ -242,16 +242,18 @@ builder.Services.AddInMemoryMessaging(builder.Configuration, assembliesToRegiste
 
 | Option | Default | Description |
 |---|---|---|
-| `Retry.IsEnabled` | `false` | To store the failed handlers of a message and execute them again later. |
-| `Retry.ServiceName` | — | The name of the service the failed messages belong to; the cache key and the lock names of the retry start with it. Required when the retry is enabled. It is **the same for all replicas** of a service and **unique between services**. |
-| `Retry.MaxConcurrency` | `10` | How many messages are retried at the same time. |
-| `Retry.TryCount` | `10` | After this count of attempts the longer delay is used. |
-| `Retry.TryAfterSeconds` | `5` | The delay before the next attempt. |
-| `Retry.TryAfterMinutesIfTryCountExceeded` | `5` | The delay once the `TryCount` is exceeded. |
-| `Retry.TryAfterMinutesIfMessageOrHandlerNotFound` | `60` | The delay when the message or its handler is not registered any more, or its payload cannot be read back. |
-| `Retry.SecondsToDelayProcessMessages` | `1` | How long the background service waits between two rounds. |
-| `Retry.MinutesToDelayAfterFailedRound` | `5` | How long the background service waits after a round which failed as a whole, for example while the cache is unavailable. |
-| `Retry.MaxFailureReasonLength` | `4000` | The reasons longer than this are truncated. `0` means no limit. |
+| `Retry.IsEnabled` | `false` | To store a message whose handlers failed and retry those handlers later. While it is off, a failed handler is still reported to the caller, but nothing is stored or retried. |
+| `Retry.ServiceName` | — | The name of the service, for example `Payroll`. Required while the retry is enabled. The cache key and the lock names start with it. It is **the same for all replicas** of a service and **unique between services**. |
+| `Retry.MaxConcurrency` | `10` | How many messages one replica retries at the same time. |
+| `Retry.TryCount` | `10` | How many failed attempts are followed by the short delay; after them the long one is used. **It is not a limit**: the retry never stops by itself. |
+| `Retry.TryAfterSeconds` | `5` | The short delay, in seconds, before the next attempt. |
+| `Retry.TryAfterMinutesIfTryCountExceeded` | `5` | The long delay, in minutes, once more than `TryCount` attempts failed. |
+| `Retry.SecondsToDelayProcessMessages` | `1` | How often, in seconds, the background service looks for the messages whose time has come. |
+| `Retry.MinutesToDelayAfterFailedRound` | `5` | The pause, in minutes, after a round of the background service fails as a whole, for example while the cache or the lock provider is unavailable. A failed handler does not fail the round. |
+| `Retry.MaxFailureReasonLength` | `4000` | The maximum length of a stored failure reason; a longer one is cut. `0` means no limit. |
+
+With the default values, a message which keeps failing is retried about a second after it failed, then every 5 seconds
+for about a minute, then every 5 minutes, until its handlers succeed or it is rejected.
 
 #### Which messages can be retried
 
@@ -262,8 +264,7 @@ A message is stored as JSON, so it must be readable back:
   type resolved only at run time is not readable back.
 
 A message which cannot be written is not stored, and the reason is written to the log. A message which is written but
-cannot be read back is stored, and its retry keeps failing every `TryAfterMinutesIfMessageOrHandlerNotFound` minutes
-until it is rejected. In both cases the failed handlers are reported to the caller as usual. Carry the ids of the
+cannot be read back is stored, and its retry keeps failing on the usual schedule until it is rejected. In both cases the failed handlers are reported to the caller as usual. Carry the ids of the
 entities instead of the entities themselves, and read them again in the handler:
 
 ```csharp

@@ -73,7 +73,7 @@ public class MemoryMessagingExtensionsTests : BaseTestEntity
     private static IConfiguration EmptyConfiguration => new ConfigurationBuilder().Build();
 
     [Test]
-    public void AddInMemoryMessaging_WithoutSettings_ShouldRegisterNothingOfTheRetry()
+    public void AddInMemoryMessaging_WithoutOptions_ShouldRegisterNothingOfTheRetry()
     {
         ServiceCollection services = new();
 
@@ -147,16 +147,16 @@ public class MemoryMessagingExtensionsTests : BaseTestEntity
     {
         // Only the memory of a replica: the messages would be lost on its first restart.
         using var memoryOnlyCache = new FusionCache(new FusionCacheOptions());
-        var settings = new InMemoryMessagingRetrySettings { IsEnabled = true, ServiceName = "tests" };
+        var options = new InMemoryMessagingRetryOptions { IsEnabled = true, ServiceName = "tests" };
 
         var exception = Assert.Throws<InMemoryMessagingException>(() => _ = new FusionCacheFailedMessageRepository(
-            memoryOnlyCache, lockProvider: null, settings, NullLogger<FusionCacheFailedMessageRepository>.Instance));
+            memoryOnlyCache, lockProvider: null, options, NullLogger<FusionCacheFailedMessageRepository>.Instance));
 
         Assert.That(exception!.Message, Does.Contain("distributed cache"));
     }
 
     [Test]
-    public void AddInMemoryMessaging_SettingsAreInTheConfiguration_ShouldReadEveryOneOfThem()
+    public void AddInMemoryMessaging_OptionsAreInTheConfiguration_ShouldReadEveryOneOfThem()
     {
         // The keys are written the way an application sets them, so the same works with the
         // "InMemoryMessaging__Retry__IsEnabled" environment variables of a deployment.
@@ -168,13 +168,12 @@ public class MemoryMessagingExtensionsTests : BaseTestEntity
             ["InMemoryMessaging:Retry:TryCount"] = "7",
             ["InMemoryMessaging:Retry:TryAfterSeconds"] = "11",
             ["InMemoryMessaging:Retry:TryAfterMinutesIfTryCountExceeded"] = "13",
-            ["InMemoryMessaging:Retry:TryAfterMinutesIfMessageOrHandlerNotFound"] = "17",
             ["InMemoryMessaging:Retry:SecondsToDelayProcessMessages"] = "19",
             ["InMemoryMessaging:Retry:MinutesToDelayAfterFailedRound"] = "3",
             ["InMemoryMessaging:Retry:MaxFailureReasonLength"] = "500",
         }).Build();
 
-        var options = configuration.GetSection("InMemoryMessaging:Retry").Get<InMemoryMessagingRetrySettings>();
+        var options = configuration.GetSection("InMemoryMessaging:Retry").Get<InMemoryMessagingRetryOptions>();
 
         Assert.That(options, Is.Not.Null);
         Assert.Multiple(() =>
@@ -185,7 +184,6 @@ public class MemoryMessagingExtensionsTests : BaseTestEntity
             Assert.That(options.TryCount, Is.EqualTo(7));
             Assert.That(options.TryAfterSeconds, Is.EqualTo(11));
             Assert.That(options.TryAfterMinutesIfTryCountExceeded, Is.EqualTo(13));
-            Assert.That(options.TryAfterMinutesIfMessageOrHandlerNotFound, Is.EqualTo(17));
             Assert.That(options.SecondsToDelayProcessMessages, Is.EqualTo(19));
             Assert.That(options.MinutesToDelayAfterFailedRound, Is.EqualTo(3));
             Assert.That(options.MaxFailureReasonLength, Is.EqualTo(500));
@@ -193,7 +191,7 @@ public class MemoryMessagingExtensionsTests : BaseTestEntity
     }
 
     [Test]
-    public void AddInMemoryMessaging_SettingsAreNotInTheConfiguration_ShouldKeepTheDefaults()
+    public void AddInMemoryMessaging_OptionsAreNotInTheConfiguration_ShouldKeepTheDefaults()
     {
         var configuration = new ConfigurationBuilder().Build();
         ServiceCollection services = new();
@@ -201,7 +199,7 @@ public class MemoryMessagingExtensionsTests : BaseTestEntity
         services.AddInMemoryMessaging(configuration, Assemblies);
 
         using var serviceProvider = services.BuildServiceProvider();
-        var options = serviceProvider.GetRequiredService<InMemoryMessagingRetrySettings>();
+        var options = serviceProvider.GetRequiredService<InMemoryMessagingRetryOptions>();
         Assert.Multiple(() =>
         {
             Assert.That(options.IsEnabled, Is.False, "An application which says nothing must get no retry.");
@@ -210,7 +208,7 @@ public class MemoryMessagingExtensionsTests : BaseTestEntity
     }
 
     [Test]
-    public void AddInMemoryMessaging_SettingIsOutOfRange_ShouldFailOnTheStartInsteadOfReplacingIt()
+    public void AddInMemoryMessaging_OptionIsOutOfRange_ShouldFailOnTheStartInsteadOfReplacingIt()
     {
         ServiceCollection services = new();
 
@@ -221,7 +219,7 @@ public class MemoryMessagingExtensionsTests : BaseTestEntity
                 options.MaxConcurrency = 0;
             }));
 
-        Assert.That(exception!.Message, Does.Contain(nameof(InMemoryMessagingRetrySettings.MaxConcurrency)));
+        Assert.That(exception!.Message, Does.Contain(nameof(InMemoryMessagingRetryOptions.MaxConcurrency)));
     }
 
     #endregion

@@ -15,29 +15,29 @@ namespace InMemoryMessaging.Extensions;
 public static class MemoryMessagingExtensions
 {
     /// <summary>
-    /// The name of the section of the retry settings in the configuration.
+    /// The name of the section of the retry options in the configuration.
     /// </summary>
     private const string RetrySectionName = "InMemoryMessaging:Retry";
 
     /// <summary>
-    /// Registering all handlers of the in-memory messaging to the dependency injection, with the retry settings read
+    /// Registering all handlers of the in-memory messaging to the dependency injection, with the retry options read
     /// from the "InMemoryMessaging:Retry" section of the configuration.
     /// </summary>
     /// <param name="services">BackgroundServices of DI</param>
     /// <param name="configuration">Configuration to get config</param>
     /// <param name="assemblies">Assemblies to find and load all messages including handlers</param>
-    /// <param name="configureRetrySettings">To change the retry settings read from the configuration, for example to pass the name of the service.</param>
+    /// <param name="configureRetryOptions">To change the retry options read from the configuration, for example to pass the name of the service.</param>
     /// <param name="baseMassageTypeToFilter">The base type of the message to filter the message handlers types. The default value is <see cref="IMessage"/>.</param>
     /// <param name="executingReceivedMessage">Events for subscribing to the executing received message</param>
     public static void AddInMemoryMessaging(this IServiceCollection services,
         IConfiguration configuration,
         Assembly[] assemblies,
-        Action<InMemoryMessagingRetrySettings> configureRetrySettings = null,
+        Action<InMemoryMessagingRetryOptions> configureRetryOptions = null,
         Type baseMassageTypeToFilter = null,
         EventHandler<ReceivedMessageArgs> executingReceivedMessage = null)
     {
-        var options = configuration.GetSection(RetrySectionName).Get<InMemoryMessagingRetrySettings>() ?? new InMemoryMessagingRetrySettings();
-        configureRetrySettings?.Invoke(options);
+        var options = configuration.GetSection(RetrySectionName).Get<InMemoryMessagingRetryOptions>() ?? new InMemoryMessagingRetryOptions();
+        configureRetryOptions?.Invoke(options);
 
         AddInMemoryMessaging(services, assemblies, options, baseMassageTypeToFilter, executingReceivedMessage);
     }
@@ -130,16 +130,16 @@ public static class MemoryMessagingExtensions
     /// </summary>
     /// <param name="services">BackgroundServices of DI</param>
     /// <param name="assemblies">Assemblies to find and load all messages including handlers</param>
-    /// <param name="options">The settings of the retry.</param>
+    /// <param name="options">The options of the retry.</param>
     /// <param name="baseMassageTypeToFilter">The base type of the message to filter the message handlers types.</param>
     /// <param name="executingReceivedMessage">Events for subscribing to the executing received message</param>
     private static void AddInMemoryMessaging(IServiceCollection services,
         Assembly[] assemblies,
-        InMemoryMessagingRetrySettings options,
+        InMemoryMessagingRetryOptions options,
         Type baseMassageTypeToFilter,
         EventHandler<ReceivedMessageArgs> executingReceivedMessage)
     {
-        RetrySettingsValidator.Validate(options);
+        RetryOptionsValidator.Validate(options);
 
         services.AddLogging();
         services.AddSingleton(options);
@@ -158,8 +158,8 @@ public static class MemoryMessagingExtensions
     /// service.
     /// </summary>
     /// <param name="services">BackgroundServices of DI</param>
-    /// <param name="options">The settings of the retry.</param>
-    private static void RegisterRetryServices(IServiceCollection services, InMemoryMessagingRetrySettings options)
+    /// <param name="options">The options of the retry.</param>
+    private static void RegisterRetryServices(IServiceCollection services, InMemoryMessagingRetryOptions options)
     {
         if (!options.IsEnabled)
         {

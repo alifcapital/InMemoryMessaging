@@ -56,7 +56,7 @@ internal sealed class FusionCacheFailedMessageRepository : IFailedMessageReposit
     /// </summary>
     /// <exception cref="InMemoryMessagingException">If the cache of the application has no distributed cache.</exception>
     public FusionCacheFailedMessageRepository(IFusionCache cache, IDistributedLockProvider lockProvider,
-        InMemoryMessagingRetrySettings options, ILogger<FusionCacheFailedMessageRepository> logger)
+        InMemoryMessagingRetryOptions options, ILogger<FusionCacheFailedMessageRepository> logger)
     {
         if (!cache.HasDistributedCache)
             throw new InMemoryMessagingException(
