@@ -27,8 +27,8 @@ internal sealed class FailedMessagesProcessorJob(
                 }
                 catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
                 {
-                    // Waits longer after a failure, to not hammer the store and the logs while it is unavailable. A round
-                    // which is cancelled because the application is stopping is not a failure, so it is not caught here.
+                    // Waits longer after a failure, to not hammer the store and the logs while it is unavailable.
+                    // A round which is cancelled because the application is stopping is not a failure, so it is not caught here.
                     logger.LogCritical(exception, "Something is wrong while retrying the failed in-memory messages.");
                     await Task.Delay(TimeSpan.FromMinutes(options.MinutesToDelayAfterFailedRound), cancellationToken);
                 }
