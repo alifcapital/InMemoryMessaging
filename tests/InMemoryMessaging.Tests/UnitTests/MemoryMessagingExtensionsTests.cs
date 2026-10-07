@@ -101,7 +101,7 @@ public class MemoryMessagingExtensionsTests : BaseTestEntity
     public void AddInMemoryMessaging_RetryIsDisabled_ManagementServiceShouldReportItInsteadOfFailingToResolve()
     {
         ServiceCollection services = new();
-        services.AddInMemoryMessaging(EmptyConfiguration, Assemblies, options => options.IsEnabled = false);
+        services.AddInMemoryMessaging(EmptyConfiguration, Assemblies, options => options with { IsEnabled = false });
 
         using var serviceProvider = services.BuildServiceProvider();
         using var scope = serviceProvider.CreateScope();
@@ -116,9 +116,7 @@ public class MemoryMessagingExtensionsTests : BaseTestEntity
         ServiceCollection services = new();
 
         var exception = Assert.Throws<InMemoryMessagingException>(() => services.AddInMemoryMessaging(EmptyConfiguration, Assemblies, options =>
-            {
-                options.IsEnabled = true;
-            }));
+            options with { IsEnabled = true }));
 
         Assert.That(exception!.Message, Does.Contain("service name"));
     }
@@ -128,10 +126,7 @@ public class MemoryMessagingExtensionsTests : BaseTestEntity
     {
         ServiceCollection services = new();
         services.AddInMemoryMessaging(EmptyConfiguration, Assemblies, options =>
-        {
-            options.IsEnabled = true;
-            options.ServiceName = "tests";
-        });
+            options with { IsEnabled = true, ServiceName = "tests" });
 
         var exception = Assert.Throws<AggregateException>(() => services.BuildServiceProvider(new ServiceProviderOptions
         {
@@ -213,11 +208,7 @@ public class MemoryMessagingExtensionsTests : BaseTestEntity
         ServiceCollection services = new();
 
         var exception = Assert.Throws<InMemoryMessagingException>(() => services.AddInMemoryMessaging(EmptyConfiguration, Assemblies, options =>
-            {
-                options.IsEnabled = true;
-                options.ServiceName = "tests";
-                options.MaxConcurrency = 0;
-            }));
+            options with { IsEnabled = true, ServiceName = "tests", MaxConcurrency = 0 }));
 
         Assert.That(exception!.Message, Does.Contain(nameof(InMemoryMessagingRetryOptions.MaxConcurrency)));
     }

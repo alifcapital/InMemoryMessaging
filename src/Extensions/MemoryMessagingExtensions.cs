@@ -26,18 +26,18 @@ public static class MemoryMessagingExtensions
     /// <param name="services">BackgroundServices of DI</param>
     /// <param name="configuration">Configuration to get config</param>
     /// <param name="assemblies">Assemblies to find and load all messages including handlers</param>
-    /// <param name="configureRetryOptions">To change the retry options read from the configuration, for example to pass the name of the service.</param>
+    /// <param name="configureRetryOptions">To change the retry options read from the configuration, for example to pass the name of the service. It returns the options to use: a copy made by the "with" expression keeps the other ones.</param>
     /// <param name="baseMassageTypeToFilter">The base type of the message to filter the message handlers types. The default value is <see cref="IMessage"/>.</param>
     /// <param name="executingReceivedMessage">Events for subscribing to the executing received message</param>
     public static void AddInMemoryMessaging(this IServiceCollection services,
         IConfiguration configuration,
         Assembly[] assemblies,
-        Action<InMemoryMessagingRetryOptions> configureRetryOptions = null,
+        Func<InMemoryMessagingRetryOptions, InMemoryMessagingRetryOptions> configureRetryOptions = null,
         Type baseMassageTypeToFilter = null,
         EventHandler<ReceivedMessageArgs> executingReceivedMessage = null)
     {
         var options = configuration.GetSection(RetrySectionName).Get<InMemoryMessagingRetryOptions>() ?? new InMemoryMessagingRetryOptions();
-        configureRetryOptions?.Invoke(options);
+        options = configureRetryOptions?.Invoke(options) ?? options;
 
         AddInMemoryMessaging(services, assemblies, options, baseMassageTypeToFilter, executingReceivedMessage);
     }

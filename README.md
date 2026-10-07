@@ -231,11 +231,8 @@ Every option can be set in the lambda instead of the configuration, when the app
 
 ```csharp
 builder.Services.AddInMemoryMessaging(builder.Configuration, assembliesToRegisterMessageHandlers,
-    options =>
-    {
-        options.IsEnabled = true;
-        options.ServiceName = "my-service";
-    });
+    // The options are read-only, so the lambda returns a changed copy of them.
+    options => options with { IsEnabled = true, ServiceName = "my-service" });
 ```
 
 #### Options
