@@ -68,10 +68,4 @@ public class InMemoryMessagingRetrySettings
     /// The "0" value means no limit.
     /// </summary>
     public int MaxFailureReasonLength { get; set; } = 4000;
-
-    /// <summary>
-    /// To keep the stack trace of the exception in the failure reason. Default value is "false",
-    /// since stack traces (and messages) of exceptions may carry personal or account data.
-    /// </summary>
-    public bool StoreFailureStackTrace { get; set; }
 }

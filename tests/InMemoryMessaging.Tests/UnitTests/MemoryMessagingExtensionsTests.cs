@@ -172,7 +172,6 @@ public class MemoryMessagingExtensionsTests : BaseTestEntity
             ["InMemoryMessaging:Retry:SecondsToDelayProcessMessages"] = "19",
             ["InMemoryMessaging:Retry:MinutesToDelayAfterFailedRound"] = "3",
             ["InMemoryMessaging:Retry:MaxFailureReasonLength"] = "500",
-            ["InMemoryMessaging:Retry:StoreFailureStackTrace"] = "true",
         }).Build();
 
         var options = configuration.GetSection("InMemoryMessaging:Retry").Get<InMemoryMessagingRetrySettings>();
@@ -190,7 +189,6 @@ public class MemoryMessagingExtensionsTests : BaseTestEntity
             Assert.That(options.SecondsToDelayProcessMessages, Is.EqualTo(19));
             Assert.That(options.MinutesToDelayAfterFailedRound, Is.EqualTo(3));
             Assert.That(options.MaxFailureReasonLength, Is.EqualTo(500));
-            Assert.That(options.StoreFailureStackTrace, Is.True);
         });
     }
 

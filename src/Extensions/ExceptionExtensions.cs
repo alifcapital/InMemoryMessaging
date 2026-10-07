@@ -10,7 +10,7 @@ internal static class ExceptionExtensions
     /// "InvalidOperationException: Could not reserve the order ---> NpgsqlException: connection timeout".
     /// </summary>
     /// <param name="exception">The exception of the failure.</param>
-    /// <param name="options">The options to know whether to add the stack trace and how long the reason may be.</param>
+    /// <param name="options">The settings to know how long the reason may be.</param>
     /// <returns>Returns the reason of the failure.</returns>
     internal static string ToFailureReason(this Exception exception, InMemoryMessagingRetrySettings options)
     {
@@ -22,9 +22,6 @@ internal static class ExceptionExtensions
 
             failureReason.Append(currentException.GetType().Name).Append(": ").Append(currentException.Message);
         }
-
-        if (options.StoreFailureStackTrace && exception.StackTrace is not null)
-            failureReason.AppendLine().Append(exception.StackTrace);
 
         return failureReason.ToString().TruncateFailureReason(options.MaxFailureReasonLength);
     }

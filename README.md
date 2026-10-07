@@ -252,7 +252,6 @@ builder.Services.AddInMemoryMessaging(builder.Configuration, assembliesToRegiste
 | `Retry.SecondsToDelayProcessMessages` | `1` | How long the background service waits between two rounds. |
 | `Retry.MinutesToDelayAfterFailedRound` | `5` | How long the background service waits after a round which failed as a whole, for example while the cache is unavailable. |
 | `Retry.MaxFailureReasonLength` | `4000` | The reasons longer than this are truncated. `0` means no limit. |
-| `Retry.StoreFailureStackTrace` | `false` | To keep the stack trace in the reason. Stack traces may carry personal data. |
 
 #### Which messages can be retried
 
