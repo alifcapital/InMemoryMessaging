@@ -37,7 +37,8 @@ internal sealed class FusionCacheFailedMessageRepository : IFailedMessageReposit
     private static readonly FusionCacheEntryOptions EntryOptions = new()
     {
         Duration = StoreDuration,
-        SkipMemoryCache = true,
+        SkipMemoryCacheRead = true,
+        SkipMemoryCacheWrite = true,
         SkipBackplaneNotifications = true,
         IsFailSafeEnabled = false,
         ReThrowDistributedCacheExceptions = true,
@@ -111,14 +112,13 @@ internal sealed class FusionCacheFailedMessageRepository : IFailedMessageReposit
         return messages.Find(message => message.Id == id);
     }
 
-    public async Task<IReadOnlyList<Guid>> GetDueMessageIdsAsync(DateTimeOffset upTo, int limit, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<Guid>> GetDueMessageIdsAsync(DateTimeOffset upTo, CancellationToken cancellationToken)
     {
         var messages = await ReadAsync(cancellationToken);
 
         return messages
             .Where(message => message.TryAfterAt <= upTo)
             .OrderBy(message => message.TryAfterAt)
-            .Take(limit)
             .Select(message => message.Id)
             .ToArray();
     }
@@ -217,7 +217,6 @@ internal sealed class FusionCacheFailedMessageRepository : IFailedMessageReposit
     /// <returns>Returns true when the message matches every filter which is set.</returns>
     private static bool Matches(FailedMessage message, MessagesFilter filter)
     {
-        if (filter.Status.HasValue && message.Status != filter.Status.Value) return false;
         if (!string.IsNullOrWhiteSpace(filter.MessageName) && message.MessageName != filter.MessageName) return false;
         if (filter.CreatedFrom.HasValue && message.CreatedAt < filter.CreatedFrom.Value) return false;
         if (filter.CreatedTo.HasValue && message.CreatedAt > filter.CreatedTo.Value) return false;

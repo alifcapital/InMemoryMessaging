@@ -36,7 +36,7 @@ internal interface IFailedMessageRepository
     /// <summary>
     /// Gets the ids of the messages whose "TryAfterAt" is at or before the given time.
     /// </summary>
-    Task<IReadOnlyList<Guid>> GetDueMessageIdsAsync(DateTimeOffset upTo, int limit, CancellationToken cancellationToken);
+    Task<IReadOnlyList<Guid>> GetDueMessageIdsAsync(DateTimeOffset upTo, CancellationToken cancellationToken);
 
     /// <summary>
     /// Gets a page of the messages which match the filter.

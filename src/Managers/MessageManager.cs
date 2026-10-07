@@ -280,7 +280,6 @@ internal class MessageManager(
                     HandlerPath = failure.HandlerPath,
                     FailureReason = failure.FailureReason
                 }).ToArray(),
-                Status = MessageStatus.Pending,
                 TryCount = 0,
                 TryAfterAt = utcNow,
                 CreatedAt = utcNow,

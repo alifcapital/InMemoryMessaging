@@ -43,22 +43,17 @@ public record MessageSummary
     public DateTimeOffset TryAfterAt { get; set; }
 
     /// <summary>
-    /// The status of the message.
-    /// </summary>
-    public MessageStatus Status { get; set; }
-
-    /// <summary>
     /// The reason of the last failure, combined from the reasons of all failed handlers.
     /// </summary>
     public string FailureReason { get; set; }
 
     /// <summary>
-    /// The UTC time when the status of the message changed.
+    /// The UTC time when the message was changed last: retried again or rescheduled.
     /// </summary>
     public DateTimeOffset UpdatedAt { get; set; }
 
     /// <summary>
-    /// The name of the user who changed the status of the message manually.
+    /// The name of the user who rescheduled the message.
     /// </summary>
     public string UpdatedBy { get; set; }
 }

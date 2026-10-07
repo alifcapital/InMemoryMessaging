@@ -31,11 +31,6 @@ public class InMemoryMessagingRetrySettings
     public int MaxConcurrency { get; set; } = 10;
 
     /// <summary>
-    /// The maximum number of the failed messages to fetch and retry in a single batch. Default value is "100".
-    /// </summary>
-    public int MaxMessagesToFetch { get; set; } = 100;
-
-    /// <summary>
     /// For increasing the TryAfterAt by the TryAfterMinutesIfTryCountExceeded when the TryCount is higher than the value. Default value is "10".
     /// </summary>
     public int TryCount { get; set; } = 10;

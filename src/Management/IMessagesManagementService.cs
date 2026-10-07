@@ -30,7 +30,7 @@ public interface IMessagesManagementService
     Task<MessageActionResult> ExecuteAsync(Guid id, MessageActionRequest request, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Makes the message pending, to be retried after the given time.
+    /// Schedules the remaining handlers of the message to be retried after the given time.
     /// </summary>
     Task<MessageActionResult> RescheduleAsync(Guid id, DateTimeOffset tryAfterAt, MessageActionRequest request,
         CancellationToken cancellationToken = default);

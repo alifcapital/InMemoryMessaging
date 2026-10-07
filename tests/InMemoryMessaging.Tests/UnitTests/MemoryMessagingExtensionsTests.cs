@@ -165,7 +165,6 @@ public class MemoryMessagingExtensionsTests : BaseTestEntity
             ["InMemoryMessaging:Retry:IsEnabled"] = "true",
             ["InMemoryMessaging:Retry:ServiceName"] = "my-service",
             ["InMemoryMessaging:Retry:MaxConcurrency"] = "4",
-            ["InMemoryMessaging:Retry:MaxMessagesToFetch"] = "50",
             ["InMemoryMessaging:Retry:TryCount"] = "7",
             ["InMemoryMessaging:Retry:TryAfterSeconds"] = "11",
             ["InMemoryMessaging:Retry:TryAfterMinutesIfTryCountExceeded"] = "13",
@@ -184,7 +183,6 @@ public class MemoryMessagingExtensionsTests : BaseTestEntity
             Assert.That(options!.IsEnabled, Is.True);
             Assert.That(options.ServiceName, Is.EqualTo("my-service"));
             Assert.That(options.MaxConcurrency, Is.EqualTo(4));
-            Assert.That(options.MaxMessagesToFetch, Is.EqualTo(50));
             Assert.That(options.TryCount, Is.EqualTo(7));
             Assert.That(options.TryAfterSeconds, Is.EqualTo(11));
             Assert.That(options.TryAfterMinutesIfTryCountExceeded, Is.EqualTo(13));

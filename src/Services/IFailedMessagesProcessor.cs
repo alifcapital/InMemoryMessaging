@@ -19,8 +19,8 @@ internal interface IFailedMessagesProcessor
     Task<MessageActionResult> ProcessSingleMessageAsync(Guid id, MessageActionRequest request, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Makes the message pending, to be retried after the given time. It takes the lock of the message, so it
-    /// never races the retry.
+    /// Schedules the remaining handlers of the message to be retried after the given time. It takes the lock of the
+    /// message, so it never races the retry.
     /// </summary>
     Task<MessageActionResult> RescheduleAsync(Guid id, DateTimeOffset tryAfterAt, MessageActionRequest request,
         CancellationToken cancellationToken);

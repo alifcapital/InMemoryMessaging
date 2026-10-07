@@ -24,7 +24,7 @@ internal sealed class FailedMessagesProcessor(
 
     public async Task RetryDueMessagesAsync(CancellationToken cancellationToken)
     {
-        var ids = await repository.GetDueMessageIdsAsync(DateTimeOffset.UtcNow, options.MaxMessagesToFetch, cancellationToken);
+        var ids = await repository.GetDueMessageIdsAsync(DateTimeOffset.UtcNow, cancellationToken);
         if (ids.Count == 0)
             return;
 
@@ -110,7 +110,6 @@ internal sealed class FailedMessagesProcessor(
         if (message is null)
             return MessageActionResult.NotFound(id);
 
-        message.Status = MessageStatus.Pending;
         message.TryAfterAt = tryAfterAt;
         if (!await SaveAsync(message, request, cancellationToken))
             return MessageActionResult.AlreadyProcessing(id);
@@ -230,7 +229,6 @@ internal sealed class FailedMessagesProcessor(
         CancellationToken cancellationToken)
     {
         message.TryCount++;
-        message.Status = MessageStatus.Failed;
         message.FailureReason = failureReason;
         message.TryAfterAt = DateTimeOffset.UtcNow.Add(GetDelayBeforeNextTry(message.TryCount));
 
@@ -249,7 +247,6 @@ internal sealed class FailedMessagesProcessor(
         MessageActionRequest request, CancellationToken cancellationToken)
     {
         message.TryCount++;
-        message.Status = MessageStatus.Failed;
         message.FailureReason = failureReason;
         message.TryAfterAt = DateTimeOffset.UtcNow.Add(delay);
 

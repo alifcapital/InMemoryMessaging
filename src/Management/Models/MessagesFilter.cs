@@ -9,11 +9,6 @@ namespace InMemoryMessaging.Management.Models;
 public record MessagesFilter
 {
     /// <summary>
-    /// Returns only the messages with the given status. If it is null, the messages of all statuses are returned.
-    /// </summary>
-    public MessageStatus? Status { get; init; }
-
-    /// <summary>
     /// Returns only the messages with the given name.
     /// </summary>
     public string MessageName { get; init; }
@@ -35,17 +30,17 @@ public record MessagesFilter
     public DateTimeOffset? CreatedTo { get; init; }
 
     /// <summary>
-    /// Returns only the messages whose status was changed at or after the given time.
+    /// Returns only the messages which were changed last at or after the given time.
     /// </summary>
     public DateTimeOffset? UpdatedFrom { get; init; }
 
     /// <summary>
-    /// Returns only the messages whose status was changed at or before the given time.
+    /// Returns only the messages which were changed last at or before the given time.
     /// </summary>
     public DateTimeOffset? UpdatedTo { get; init; }
 
     /// <summary>
-    /// Returns only the messages whose status was changed manually by the user whose name contains the given text
+    /// Returns only the messages which were rescheduled by the user whose name contains the given text
     /// (case-insensitive), so a part of the full name such as the first name is enough.
     /// </summary>
     public string UpdatedBy { get; init; }

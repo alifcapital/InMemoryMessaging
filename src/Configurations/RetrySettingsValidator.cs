@@ -23,7 +23,6 @@ internal static class RetrySettingsValidator
                 "The service name is required to retry the failed in-memory messages, and it must be unique per service.");
 
         EnsureIsPositive(options.MaxConcurrency, nameof(options.MaxConcurrency));
-        EnsureIsPositive(options.MaxMessagesToFetch, nameof(options.MaxMessagesToFetch));
         EnsureIsPositive(options.TryCount, nameof(options.TryCount));
         EnsureIsPositive(options.TryAfterSeconds, nameof(options.TryAfterSeconds));
         EnsureIsPositive(options.TryAfterMinutesIfTryCountExceeded, nameof(options.TryAfterMinutesIfTryCountExceeded));

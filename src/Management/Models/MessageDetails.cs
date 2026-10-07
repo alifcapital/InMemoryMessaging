@@ -11,7 +11,7 @@ public record MessageDetails : MessageSummary
     public string Payload { get; set; }
 
     /// <summary>
-    /// The reason the user gave for changing the status of the message.
+    /// The reason the user gave for rescheduling the message.
     /// </summary>
     public string StatusComment { get; set; }
 }

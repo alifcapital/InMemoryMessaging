@@ -245,7 +245,6 @@ builder.Services.AddInMemoryMessaging(builder.Configuration, assembliesToRegiste
 | `Retry.IsEnabled` | `false` | To store the failed handlers of a message and execute them again later. |
 | `Retry.ServiceName` | — | The name of the service the failed messages belong to; the cache key and the lock names of the retry start with it. Required when the retry is enabled. It is **the same for all replicas** of a service and **unique between services**. |
 | `Retry.MaxConcurrency` | `10` | How many messages are retried at the same time. |
-| `Retry.MaxMessagesToFetch` | `100` | How many messages are taken in one round. |
 | `Retry.TryCount` | `10` | After this count of attempts the longer delay is used. |
 | `Retry.TryAfterSeconds` | `5` | The delay before the next attempt. |
 | `Retry.TryAfterMinutesIfTryCountExceeded` | `5` | The delay once the `TryCount` is exceeded. |
@@ -297,7 +296,7 @@ executed, or once it is rejected. There is no history of the executed or rejecte
 | `GetMessagesAsync(filter, ct)` | A page of the messages which match the filter. |
 | `GetMessageByIdAsync(id, ct)` | All details of one message, including its payload. |
 | `ExecuteAsync(id, request, ct)` | Executes the remaining handlers now and waits for the result. The message is removed when all of them succeed. |
-| `RescheduleAsync(id, tryAfterAt, request, ct)` | Makes the message pending, to be retried after the given time. |
+| `RescheduleAsync(id, tryAfterAt, request, ct)` | Schedules the remaining handlers to be retried after the given time. |
 | `RejectAsync(id, request, ct)` | Removes the message, so its handlers are never retried. |
 
 Every action takes a `MessageActionRequest` with `PerformedBy` and `Comment`. They are written to the log, so it is
