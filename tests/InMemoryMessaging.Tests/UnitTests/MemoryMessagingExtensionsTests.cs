@@ -1,11 +1,28 @@
+using System.Reflection;
+using InMemoryMessaging.Configurations;
+using InMemoryMessaging.Exceptions;
 using InMemoryMessaging.Extensions;
+using InMemoryMessaging.Managers;
+using InMemoryMessaging.Management;
+using InMemoryMessaging.Repositories;
 using InMemoryMessaging.Tests.Domain;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using NUnit.Framework;
+using ZiggyCreatures.Caching.Fusion;
 
 namespace InMemoryMessaging.Tests.UnitTests;
 
 public class MemoryMessagingExtensionsTests : BaseTestEntity
 {
+    private const string RetrySectionName = "InMemoryMessaging:Retry";
+    private const string ServiceName = "tests";
+
+    private static readonly Assembly[] Assemblies = [typeof(MemoryMessagingExtensionsTests).Assembly];
+
+    private static IConfiguration EmptyConfiguration => new ConfigurationBuilder().Build();
+
     #region GetSubscriberTypes
 
     [Test]
@@ -51,6 +68,150 @@ public class MemoryMessagingExtensionsTests : BaseTestEntity
         var handlerTypes = handlersInfo[messageType];
         Assert.That(handlerTypes, Has.Count.EqualTo(1));
         Assert.That(handlerTypes, Does.Contain(messageHandlerType));
+    }
+
+    #endregion
+
+    #region AddInMemoryMessaging
+
+    [Test]
+    public void AddInMemoryMessaging_WithoutOptions_ShouldNotRegisterRetryServices()
+    {
+        ServiceCollection services = new();
+
+        services.AddInMemoryMessaging(EmptyConfiguration, Assemblies, baseMassageTypeToFilter: typeof(IDomainEvent));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(services.Any(service => service.ServiceType == typeof(IFailedMessageRepository)), Is.False);
+            Assert.That(services.Any(service => service.ServiceType == typeof(IHostedService)), Is.False);
+        });
+
+        using var serviceProvider = services.BuildServiceProvider(new ServiceProviderOptions
+        {
+            ValidateOnBuild = true,
+            ValidateScopes = true
+        });
+
+        using var scope = serviceProvider.CreateScope();
+        Assert.That(scope.ServiceProvider.GetRequiredService<IMessageManager>(), Is.Not.Null);
+    }
+
+    [Test]
+    public void AddInMemoryMessaging_RetryIsDisabled_ManagementServiceShouldThrowOnUse()
+    {
+        ServiceCollection services = new();
+        services.AddInMemoryMessaging(EmptyConfiguration, Assemblies, options => options with { IsEnabled = false });
+
+        using var serviceProvider = services.BuildServiceProvider();
+        using var scope = serviceProvider.CreateScope();
+        var managementService = scope.ServiceProvider.GetRequiredService<IMessagesManagementService>();
+
+        Assert.ThrowsAsync<InMemoryMessagingException>(() => managementService.GetMessagesAsync(filter: null));
+    }
+
+    [Test]
+    public void AddInMemoryMessaging_RetryIsEnabledWithoutServiceName_ShouldThrow()
+    {
+        ServiceCollection services = new();
+
+        var exception = Assert.Throws<InMemoryMessagingException>(() => services.AddInMemoryMessaging(EmptyConfiguration, Assemblies, options =>
+            options with { IsEnabled = true }));
+
+        Assert.That(exception!.Message, Does.Contain("service name"));
+    }
+
+    [Test]
+    public void AddInMemoryMessaging_RetryIsEnabledWithoutCacheOfTheApplication_ShouldFailOnBuild()
+    {
+        ServiceCollection services = new();
+        services.AddInMemoryMessaging(EmptyConfiguration, Assemblies, options =>
+            options with { IsEnabled = true, ServiceName = ServiceName });
+
+        var exception = Assert.Throws<AggregateException>(() => services.BuildServiceProvider(new ServiceProviderOptions
+        {
+            ValidateOnBuild = true
+        }));
+
+        Assert.That(exception!.ToString(), Does.Contain(nameof(IFusionCache)));
+    }
+
+    [Test]
+    public void AddInMemoryMessaging_OptionsAreInTheConfiguration_ShouldRegisterThem()
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
+        {
+            [$"{RetrySectionName}:{nameof(InMemoryMessagingRetryOptions.IsEnabled)}"] = "true",
+            [$"{RetrySectionName}:{nameof(InMemoryMessagingRetryOptions.ServiceName)}"] = ServiceName,
+            [$"{RetrySectionName}:{nameof(InMemoryMessagingRetryOptions.MaxConcurrency)}"] = "4",
+            [$"{RetrySectionName}:{nameof(InMemoryMessagingRetryOptions.TryCount)}"] = "7",
+            [$"{RetrySectionName}:{nameof(InMemoryMessagingRetryOptions.TryAfterSeconds)}"] = "11",
+            [$"{RetrySectionName}:{nameof(InMemoryMessagingRetryOptions.TryAfterMinutesIfTryCountExceeded)}"] = "13",
+            [$"{RetrySectionName}:{nameof(InMemoryMessagingRetryOptions.SecondsToDelayProcessMessages)}"] = "19",
+            [$"{RetrySectionName}:{nameof(InMemoryMessagingRetryOptions.MinutesToDelayAfterFailedRound)}"] = "3",
+            [$"{RetrySectionName}:{nameof(InMemoryMessagingRetryOptions.MaxFailureReasonLength)}"] = "500",
+        }).Build();
+        ServiceCollection services = new();
+
+        services.AddInMemoryMessaging(configuration, Assemblies);
+
+        using var serviceProvider = services.BuildServiceProvider();
+        var options = serviceProvider.GetRequiredService<InMemoryMessagingRetryOptions>();
+        Assert.Multiple(() =>
+        {
+            Assert.That(options.IsEnabled, Is.True);
+            Assert.That(options.ServiceName, Is.EqualTo(ServiceName));
+            Assert.That(options.MaxConcurrency, Is.EqualTo(4));
+            Assert.That(options.TryCount, Is.EqualTo(7));
+            Assert.That(options.TryAfterSeconds, Is.EqualTo(11));
+            Assert.That(options.TryAfterMinutesIfTryCountExceeded, Is.EqualTo(13));
+            Assert.That(options.SecondsToDelayProcessMessages, Is.EqualTo(19));
+            Assert.That(options.MinutesToDelayAfterFailedRound, Is.EqualTo(3));
+            Assert.That(options.MaxFailureReasonLength, Is.EqualTo(500));
+        });
+    }
+
+    [Test]
+    public void AddInMemoryMessaging_OptionsAreNotInTheConfiguration_ShouldKeepTheDefaults()
+    {
+        ServiceCollection services = new();
+
+        services.AddInMemoryMessaging(EmptyConfiguration, Assemblies);
+
+        using var serviceProvider = services.BuildServiceProvider();
+        var options = serviceProvider.GetRequiredService<InMemoryMessagingRetryOptions>();
+        Assert.Multiple(() =>
+        {
+            Assert.That(options.IsEnabled, Is.False);
+            Assert.That(options.TryCount, Is.EqualTo(new InMemoryMessagingRetryOptions().TryCount));
+        });
+    }
+
+    [Test]
+    public void AddInMemoryMessaging_OptionIsOutOfRange_ShouldThrow()
+    {
+        ServiceCollection services = new();
+
+        var exception = Assert.Throws<InMemoryMessagingException>(() => services.AddInMemoryMessaging(EmptyConfiguration, Assemblies, options =>
+            options with { IsEnabled = true, ServiceName = ServiceName, MaxConcurrency = 0 }));
+
+        Assert.That(exception!.Message, Does.Contain(nameof(InMemoryMessagingRetryOptions.MaxConcurrency)));
+    }
+
+    #endregion
+
+    #region FusionCacheFailedMessageRepository
+
+    [Test]
+    public void FusionCacheFailedMessageRepository_CacheHasNoDistributedCache_ShouldThrow()
+    {
+        using var memoryOnlyCache = new FusionCache(new FusionCacheOptions());
+        var options = new InMemoryMessagingRetryOptions { IsEnabled = true, ServiceName = ServiceName };
+
+        var exception = Assert.Throws<InMemoryMessagingException>(() => _ = new FusionCacheFailedMessageRepository(
+            memoryOnlyCache, lockProvider: null, options));
+
+        Assert.That(exception!.Message, Does.Contain("distributed cache"));
     }
 
     #endregion
