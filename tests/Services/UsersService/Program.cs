@@ -5,7 +5,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Logging.AddConfiguration(builder.Configuration.GetSection("Logging"));
 
 Assembly[] assembliesToRegisterMessageHandlers = [typeof(Program).Assembly];
-builder.Services.AddInMemoryMessaging(assembliesToRegisterMessageHandlers);
+builder.Services.AddInMemoryMessaging(builder.Configuration, assembliesToRegisterMessageHandlers);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
