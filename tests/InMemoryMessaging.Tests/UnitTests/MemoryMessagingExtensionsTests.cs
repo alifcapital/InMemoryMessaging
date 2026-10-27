@@ -77,6 +77,7 @@ public class MemoryMessagingExtensionsTests : BaseTestEntity
     public void AddInMemoryMessaging_RetryOptionsAreNotGiven_ShouldNotRegisterRetryServices()
     {
         ServiceCollection services = new();
+        services.AddLogging();
 
         services.AddInMemoryMessaging(EmptyConfiguration, Assemblies, baseMassageTypeToFilter: typeof(IDomainEvent));
         using var serviceProvider = services.BuildServiceProvider(new ServiceProviderOptions
@@ -98,6 +99,7 @@ public class MemoryMessagingExtensionsTests : BaseTestEntity
     public void AddInMemoryMessaging_RetryIsDisabled_ShouldRegisterManagementServiceWhichThrows()
     {
         ServiceCollection services = new();
+        services.AddLogging();
 
         services.AddInMemoryMessaging(EmptyConfiguration, Assemblies, options => options with { IsEnabled = false });
         using var serviceProvider = services.BuildServiceProvider();
@@ -122,6 +124,7 @@ public class MemoryMessagingExtensionsTests : BaseTestEntity
     public void AddInMemoryMessaging_RetryIsEnabledWithoutCacheOfTheApplication_ShouldThrowOnBuild()
     {
         ServiceCollection services = new();
+        services.AddLogging();
         services.AddInMemoryMessaging(EmptyConfiguration, Assemblies, options =>
             options with { IsEnabled = true, ServiceName = ServiceName });
 

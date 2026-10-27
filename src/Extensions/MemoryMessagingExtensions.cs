@@ -37,7 +37,6 @@ public static class MemoryMessagingExtensions
 
         RetryOptionsValidator.Validate(options);
 
-        services.AddLogging();
         services.AddSingleton(options);
         services.AddScoped<IMessageManager, MessageManager>();
         services.AddScoped<IMessagesManagementService>(serviceProvider => new MessagesManagementService(
