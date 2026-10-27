@@ -16,13 +16,8 @@ namespace InMemoryMessaging.Extensions;
 public static class MemoryMessagingExtensions
 {
     /// <summary>
-    /// The name of the section of the retry options in the configuration.
-    /// </summary>
-    private const string RetrySectionName = "InMemoryMessaging:Retry";
-
-    /// <summary>
     /// Registering all handlers of the in-memory messaging to the dependency injection, with the retry options read
-    /// from the "InMemoryMessaging:Retry" section of the configuration.
+    /// from the "InMemoryMessagingRetryOptions" section of the configuration.
     /// </summary>
     /// <param name="services">The services of the dependency injection.</param>
     /// <param name="configuration">The configuration to read the retry options from.</param>
@@ -37,7 +32,7 @@ public static class MemoryMessagingExtensions
         Type baseMassageTypeToFilter = null,
         EventHandler<ReceivedMessageArgs> executingReceivedMessage = null)
     {
-        var options = configuration.GetSection(RetrySectionName).Get<InMemoryMessagingRetryOptions>() ?? new InMemoryMessagingRetryOptions();
+        var options = configuration.GetSection(nameof(InMemoryMessagingRetryOptions)).Get<InMemoryMessagingRetryOptions>() ?? new InMemoryMessagingRetryOptions();
         options = configureRetryOptions?.Invoke(options) ?? options;
 
         RetryOptionsValidator.Validate(options);

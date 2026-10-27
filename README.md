@@ -205,17 +205,15 @@ builder.Services.AddSingleton<IDistributedLockProvider>(_ =>
 The FusionCache must have a distributed cache. A cache which lives only in the memory of a replica would lose the
 messages on its first restart, so the retry refuses to start on it.
 
-To enable it, add the `InMemoryMessaging` section to the `appsettings.json`:
+To enable it, add the `InMemoryMessagingRetryOptions` section to the `appsettings.json`:
 
 ```json
 {
-  "InMemoryMessaging": {
-    "Retry": {
-      "IsEnabled": true,
-      "ServiceName": "my-service",
-      "TryCount": 10,
-      "TryAfterSeconds": 5
-    }
+  "InMemoryMessagingRetryOptions": {
+    "IsEnabled": true,
+    "ServiceName": "my-service",
+    "TryCount": 10,
+    "TryAfterSeconds": 5
   }
 }
 ```
@@ -239,15 +237,15 @@ builder.Services.AddInMemoryMessaging(builder.Configuration, assembliesToRegiste
 
 | Option | Default | Description |
 |---|---|---|
-| `Retry.IsEnabled` | `false` | To store a message whose handlers failed and retry those handlers later. While it is off, a failed handler is still reported to the caller, but nothing is stored or retried. |
-| `Retry.ServiceName` | — | The name of the service, for example `Payroll`. Required while the retry is enabled. The cache key and the lock names start with it. It is **the same for all replicas** of a service and **unique between services**. |
-| `Retry.MaxConcurrency` | `10` | How many messages one replica retries at the same time. |
-| `Retry.TryCount` | `10` | How many failed attempts are followed by the short delay; after them the long one is used. **It is not a limit**: the retry never stops by itself. |
-| `Retry.TryAfterSeconds` | `5` | The short delay, in seconds, before the next attempt. |
-| `Retry.TryAfterMinutesIfTryCountExceeded` | `5` | The long delay, in minutes, once more than `TryCount` attempts failed. |
-| `Retry.SecondsToDelayProcessMessages` | `1` | How often, in seconds, the background service looks for the messages whose time has come. |
-| `Retry.MinutesToDelayAfterFailedRound` | `5` | The pause, in minutes, after a round of the background service fails as a whole, for example while the cache or the lock provider is unavailable. A failed handler does not fail the round. |
-| `Retry.MaxFailureReasonLength` | `4000` | The maximum length of a stored failure reason; a longer one is cut. `0` means no limit. |
+| `IsEnabled` | `false` | To store a message whose handlers failed and retry those handlers later. While it is off, a failed handler is still reported to the caller, but nothing is stored or retried. |
+| `ServiceName` | — | The name of the service, for example `Payroll`. Required while the retry is enabled. The cache key and the lock names start with it. It is **the same for all replicas** of a service and **unique between services**. |
+| `MaxConcurrency` | `10` | How many messages one replica retries at the same time. |
+| `TryCount` | `10` | How many failed attempts are followed by the short delay; after them the long one is used. **It is not a limit**: the retry never stops by itself. |
+| `TryAfterSeconds` | `5` | The short delay, in seconds, before the next attempt. |
+| `TryAfterMinutesIfTryCountExceeded` | `5` | The long delay, in minutes, once more than `TryCount` attempts failed. |
+| `SecondsToDelayProcessMessages` | `1` | How often, in seconds, the background service looks for the messages whose time has come. |
+| `MinutesToDelayAfterFailedRound` | `5` | The pause, in minutes, after a round of the background service fails as a whole, for example while the cache or the lock provider is unavailable. A failed handler does not fail the round. |
+| `MaxFailureReasonLength` | `4000` | The maximum length of a stored failure reason; a longer one is cut. `0` means no limit. |
 
 With the default values, a message which keeps failing is retried about a second after it failed, then every 5 seconds
 for about a minute, then every 5 minutes, until its handlers succeed or it is rejected.
@@ -374,7 +372,7 @@ All failed messages of a service are kept in one cache entry, and every change o
 service: the entry is read, changed and written back while the lock is held, so two replicas never write over the change
 of each other. The handlers are never executed under this lock.
 
-`Retry.ServiceName` is **the same for all replicas** of a service, so any replica retries a message another one has
+`ServiceName` is **the same for all replicas** of a service, so any replica retries a message another one has
 stored, also when that replica is gone. It is **unique between services**: only the service which stored a message knows
 the types of the message and of its handlers, so only it can retry that message.
 

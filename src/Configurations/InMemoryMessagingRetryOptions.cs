@@ -1,8 +1,8 @@
 namespace InMemoryMessaging.Configurations;
 
 /// <summary>
-/// The options of retrying the failed handlers of an in-memory message, read from the "InMemoryMessaging:Retry"
-/// section of the configuration.
+/// The options of retrying the failed handlers of an in-memory message, read from the
+/// "InMemoryMessagingRetryOptions" section of the configuration.
 /// </summary>
 public record InMemoryMessagingRetryOptions
 {

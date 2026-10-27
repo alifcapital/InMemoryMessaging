@@ -16,7 +16,6 @@ namespace InMemoryMessaging.Tests.UnitTests;
 
 public class MemoryMessagingExtensionsTests : BaseTestEntity
 {
-    private const string RetrySectionName = "InMemoryMessaging:Retry";
     private const string ServiceName = "tests";
 
     private static readonly Assembly[] Assemblies = [typeof(MemoryMessagingExtensionsTests).Assembly];
@@ -139,15 +138,15 @@ public class MemoryMessagingExtensionsTests : BaseTestEntity
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
         {
-            [$"{RetrySectionName}:{nameof(InMemoryMessagingRetryOptions.IsEnabled)}"] = "true",
-            [$"{RetrySectionName}:{nameof(InMemoryMessagingRetryOptions.ServiceName)}"] = ServiceName,
-            [$"{RetrySectionName}:{nameof(InMemoryMessagingRetryOptions.MaxConcurrency)}"] = "4",
-            [$"{RetrySectionName}:{nameof(InMemoryMessagingRetryOptions.TryCount)}"] = "7",
-            [$"{RetrySectionName}:{nameof(InMemoryMessagingRetryOptions.TryAfterSeconds)}"] = "11",
-            [$"{RetrySectionName}:{nameof(InMemoryMessagingRetryOptions.TryAfterMinutesIfTryCountExceeded)}"] = "13",
-            [$"{RetrySectionName}:{nameof(InMemoryMessagingRetryOptions.SecondsToDelayProcessMessages)}"] = "19",
-            [$"{RetrySectionName}:{nameof(InMemoryMessagingRetryOptions.MinutesToDelayAfterFailedRound)}"] = "3",
-            [$"{RetrySectionName}:{nameof(InMemoryMessagingRetryOptions.MaxFailureReasonLength)}"] = "500",
+            [$"{nameof(InMemoryMessagingRetryOptions)}:{nameof(InMemoryMessagingRetryOptions.IsEnabled)}"] = "true",
+            [$"{nameof(InMemoryMessagingRetryOptions)}:{nameof(InMemoryMessagingRetryOptions.ServiceName)}"] = ServiceName,
+            [$"{nameof(InMemoryMessagingRetryOptions)}:{nameof(InMemoryMessagingRetryOptions.MaxConcurrency)}"] = "4",
+            [$"{nameof(InMemoryMessagingRetryOptions)}:{nameof(InMemoryMessagingRetryOptions.TryCount)}"] = "7",
+            [$"{nameof(InMemoryMessagingRetryOptions)}:{nameof(InMemoryMessagingRetryOptions.TryAfterSeconds)}"] = "11",
+            [$"{nameof(InMemoryMessagingRetryOptions)}:{nameof(InMemoryMessagingRetryOptions.TryAfterMinutesIfTryCountExceeded)}"] = "13",
+            [$"{nameof(InMemoryMessagingRetryOptions)}:{nameof(InMemoryMessagingRetryOptions.SecondsToDelayProcessMessages)}"] = "19",
+            [$"{nameof(InMemoryMessagingRetryOptions)}:{nameof(InMemoryMessagingRetryOptions.MinutesToDelayAfterFailedRound)}"] = "3",
+            [$"{nameof(InMemoryMessagingRetryOptions)}:{nameof(InMemoryMessagingRetryOptions.MaxFailureReasonLength)}"] = "500",
         }).Build();
         ServiceCollection services = new();
 
