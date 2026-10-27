@@ -3,10 +3,13 @@ using System.Reflection;
 using InMemoryMessaging.Configurations;
 using InMemoryMessaging.Exceptions;
 using InMemoryMessaging.Extensions;
+using InMemoryMessaging.Management.Models;
 using InMemoryMessaging.Managers;
 using InMemoryMessaging.Models;
+using InMemoryMessaging.Repositories;
 using InMemoryMessaging.Tests.Domain;
 using InMemoryMessaging.Tests.Domain.Failing;
+using InMemoryMessaging.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
@@ -160,6 +163,41 @@ public class MessageManagerTests : BaseTestEntity
     }
 
     [Test]
+    public async Task PublishAsync_OneHandlerFailsWhileRetryIsEnabled_ShouldStoreMessageWithFailedHandlersOnly()
+    {
+        var repository = TestFailedMessageRepository.Create();
+        var memoryMessagingManager = CreateManager(repository);
+        var message = new OrderPlaced { Id = Guid.NewGuid() };
+
+        var exception = Assert.ThrowsAsync<InMemoryMessagePublishException>(() => memoryMessagingManager.PublishAsync(message));
+        var page = await repository.GetMessagesAsync(new MessagesFilter(), CancellationToken.None);
+
+        Assert.That(page.Items, Has.Count.EqualTo(1));
+        var storedMessage = await repository.GetByIdAsync(page.Items[0].Id, CancellationToken.None);
+        Assert.Multiple(() =>
+        {
+            Assert.That(exception!.Message, Does.Contain(storedMessage!.Id.ToString()));
+            Assert.That(storedMessage.MessageName, Is.EqualTo(nameof(OrderPlaced)));
+            Assert.That(storedMessage.MessagePath, Is.EqualTo(typeof(OrderPlaced).FullName));
+            Assert.That(storedMessage.Payload, Does.Contain(message.Id.ToString()));
+            Assert.That(storedMessage.Handlers.Select(handler => handler.HandlerPath), Is.EquivalentTo(new[]
+            {
+                typeof(OrderPlacedAsyncFailingHandler).FullName,
+                typeof(OrderPlacedSecondFailingHandler).FullName
+            }), "Only the failed handlers must be stored.");
+            Assert.That(storedMessage.Handlers.Select(handler => handler.FailureReason), Has.All.Not.Empty);
+            Assert.That(storedMessage.FailureReason, Does.Contain(nameof(OrderPlacedAsyncFailingHandler))
+                .And.Contain(nameof(OrderPlacedSecondFailingHandler)));
+            Assert.That(storedMessage.TryCount, Is.Zero);
+            Assert.That(storedMessage.TryAfterAt, Is.EqualTo(storedMessage.CreatedAt), "The message must be retried at once.");
+            Assert.That(storedMessage.UpdatedAt, Is.EqualTo(storedMessage.CreatedAt));
+            Assert.That(storedMessage.CreatedAt.Offset, Is.EqualTo(DateTimeOffset.Now.Offset), "The time must be local.");
+            Assert.That(storedMessage.UpdatedBy, Is.Null);
+            Assert.That(storedMessage.StatusComment, Is.Null);
+        });
+    }
+
+    [Test]
     public void PublishAsync_MessageWithoutFailingHandler_ShouldNotThrow()
     {
         var memoryMessagingManager = CreateManager();
@@ -185,9 +223,10 @@ public class MessageManagerTests : BaseTestEntity
     /// <summary>
     /// Builds the manager the way the dependency injection does. No repository means the retry is disabled.
     /// </summary>
-    private MessageManager CreateManager()
+    private MessageManager CreateManager(IFailedMessageRepository repository = null)
     {
-        return new MessageManager(_serviceProvider, new InMemoryMessagingRetryOptions(), NullLogger<MessageManager>.Instance);
+        return new MessageManager(_serviceProvider, new InMemoryMessagingRetryOptions(), NullLogger<MessageManager>.Instance,
+            repository);
     }
 
     /// <summary>

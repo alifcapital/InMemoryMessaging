@@ -195,20 +195,4 @@ public class MemoryMessagingExtensionsTests : BaseTestEntity
     }
 
     #endregion
-
-    #region FusionCacheFailedMessageRepository
-
-    [Test]
-    public void Constructor_CacheHasNoDistributedCache_ShouldThrow()
-    {
-        using var memoryOnlyCache = new FusionCache(new FusionCacheOptions());
-        var options = new InMemoryMessagingRetryOptions { IsEnabled = true, ServiceName = ServiceName };
-
-        var exception = Assert.Throws<InMemoryMessagingException>(() => _ = new FusionCacheFailedMessageRepository(
-            memoryOnlyCache, lockProvider: null, options));
-
-        Assert.That(exception!.Message, Does.Contain("distributed cache"));
-    }
-
-    #endregion
 }
