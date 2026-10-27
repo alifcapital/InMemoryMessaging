@@ -33,7 +33,7 @@ internal sealed class FailedMessagesProcessor(
         if (roundLock is null)
             return;
 
-        var ids = await repository.GetDueMessageIdsAsync(DateTimeOffset.UtcNow, cancellationToken);
+        var ids = await repository.GetDueMessageIdsAsync(DateTimeOffset.Now, cancellationToken);
         if (ids.Count == 0)
             return;
 
@@ -207,7 +207,7 @@ internal sealed class FailedMessagesProcessor(
     {
         message.TryCount++;
         message.FailureReason = failureReason;
-        message.TryAfterAt = DateTimeOffset.UtcNow.Add(GetDelayBeforeNextTry(message.TryCount));
+        message.TryAfterAt = DateTimeOffset.Now.Add(GetDelayBeforeNextTry(message.TryCount));
 
         await TryUpdateAsync(message, request, cancellationToken);
         return MessageActionResult.Failed(failureReason);
@@ -222,7 +222,7 @@ internal sealed class FailedMessagesProcessor(
     /// <returns>Returns false when the message was removed in the meantime.</returns>
     private async Task<bool> TryUpdateAsync(MessageDetails message, MessageActionRequest request, CancellationToken cancellationToken)
     {
-        message.UpdatedAt = DateTimeOffset.UtcNow;
+        message.UpdatedAt = DateTimeOffset.Now;
         if (request is not null)
         {
             message.UpdatedBy = request.PerformedBy;

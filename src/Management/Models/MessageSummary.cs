@@ -23,7 +23,7 @@ public record MessageSummary
     public string MessagePath { get; set; }
 
     /// <summary>
-    /// The UTC time when the message failed for the first time.
+    /// The local time when the message failed for the first time.
     /// </summary>
     public DateTimeOffset CreatedAt { get; set; }
 
@@ -33,7 +33,7 @@ public record MessageSummary
     public int TryCount { get; set; }
 
     /// <summary>
-    /// The UTC time after which the remaining handlers are retried.
+    /// The local time after which the remaining handlers are retried.
     /// </summary>
     public DateTimeOffset TryAfterAt { get; set; }
 
@@ -43,7 +43,7 @@ public record MessageSummary
     public string FailureReason { get; set; }
 
     /// <summary>
-    /// The UTC time when the message was changed last: retried again or rescheduled.
+    /// The local time when the message was changed last: retried again or rescheduled.
     /// </summary>
     public DateTimeOffset UpdatedAt { get; set; }
 

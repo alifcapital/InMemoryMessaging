@@ -255,7 +255,7 @@ internal class MessageManager(
     private MessageDetails CreateFailedMessage(IMessage message, string payload, List<HandlerFailure> failures)
     {
         var messageType = message.GetType();
-        var utcNow = DateTimeOffset.UtcNow;
+        var now = DateTimeOffset.Now;
 
         return new MessageDetails
         {
@@ -265,9 +265,9 @@ internal class MessageManager(
             Payload = payload,
             Handlers = failures.Select(failure => failure.ToFailedMessageHandler()).ToArray(),
             TryCount = 0,
-            TryAfterAt = utcNow,
-            CreatedAt = utcNow,
-            UpdatedAt = utcNow,
+            TryAfterAt = now,
+            CreatedAt = now,
+            UpdatedAt = now,
             FailureReason = failures.CombineFailureReasons(options.MaxFailureReasonLength)
         };
     }

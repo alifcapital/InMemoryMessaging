@@ -102,7 +102,7 @@ internal sealed class FusionCacheFailedMessageRepository(
                 return false;
 
             message.TryAfterAt = tryAfterAt;
-            message.UpdatedAt = DateTimeOffset.UtcNow;
+            message.UpdatedAt = DateTimeOffset.Now;
             message.UpdatedBy = request?.PerformedBy;
             message.StatusComment = request?.Comment;
             return true;
