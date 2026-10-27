@@ -92,6 +92,23 @@ internal sealed class FusionCacheFailedMessageRepository(
         }, cancellationToken);
     }
 
+    public Task<bool> RescheduleAsync(Guid id, DateTimeOffset tryAfterAt, MessageActionRequest request,
+        CancellationToken cancellationToken)
+    {
+        return ChangeAsync(messages =>
+        {
+            var message = messages.Find(stored => stored.Id == id);
+            if (message is null)
+                return false;
+
+            message.TryAfterAt = tryAfterAt;
+            message.UpdatedAt = DateTimeOffset.UtcNow;
+            message.UpdatedBy = request?.PerformedBy;
+            message.StatusComment = request?.Comment;
+            return true;
+        }, cancellationToken);
+    }
+
     public Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken)
     {
         return ChangeAsync(messages => messages.RemoveAll(stored => stored.Id == id) > 0, cancellationToken);

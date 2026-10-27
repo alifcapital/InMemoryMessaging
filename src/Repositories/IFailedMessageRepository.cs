@@ -34,6 +34,17 @@ internal interface IFailedMessageRepository
     Task<bool> UpdateAsync(MessageDetails message, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Changes the time after which the handlers of the message are retried, and keeps who changed it and why.
+    /// </summary>
+    /// <param name="id">The id of the message.</param>
+    /// <param name="tryAfterAt">The time after which the handlers are retried.</param>
+    /// <param name="request">Who changed the message and why.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>Returns false when there is no message with the given id.</returns>
+    Task<bool> RescheduleAsync(Guid id, DateTimeOffset tryAfterAt, MessageActionRequest request,
+        CancellationToken cancellationToken);
+
+    /// <summary>
     /// Removes the message from the repository.
     /// </summary>
     /// <param name="id">The id of the message.</param>

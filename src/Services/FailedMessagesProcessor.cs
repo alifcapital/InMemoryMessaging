@@ -50,47 +50,34 @@ internal sealed class FailedMessagesProcessor(
 
     #region Retrying a single message
 
-    public Task<MessageActionResult> RetryMessageAsync(Guid id, MessageActionRequest request,
+    public async Task<MessageActionResult> RetryMessageAsync(Guid id, MessageActionRequest request,
         CancellationToken cancellationToken)
     {
-        return LockAndChangeMessageAsync(id, message => RetryLockedMessageAsync(message, request, cancellationToken),
-            cancellationToken);
-    }
-
-    #endregion
-
-    #region Changing the message
-
-    public Task<MessageActionResult> RescheduleAsync(Guid id, DateTimeOffset tryAfterAt, MessageActionRequest request,
-        CancellationToken cancellationToken)
-    {
-        return LockAndChangeMessageAsync(id, async message =>
+        /*
+         * The message lock is not waited for. When the message is already being retried by another instance or by a
+         * user, this call returns AlreadyProcessing at once instead of waiting for it.
+         */
+        await using var messageLock = await lockProvider.TryAcquireLockAsync(
+            FailedMessagesKeys.MessageLock(options.ServiceName, id), TimeSpan.Zero, cancellationToken);
+        if (messageLock is null)
         {
-            message.TryAfterAt = tryAfterAt;
-            if (!await TryUpdateAsync(message, request, cancellationToken))
-                return MessageActionResult.NotFound(id);
+            logger.LogDebug(
+                "The failed in-memory message with the {MessageId} id is locked by another instance.", id);
+            return MessageActionResult.AlreadyProcessing(id);
+        }
 
-            logger.LogInformation(
-                "The '{MessageName}' failed in-memory message with the {MessageId} id is rescheduled to {TryAfterAt} by {PerformedBy}. Comment: {Comment}",
-                message.MessageName, id, tryAfterAt, request?.PerformedBy, request?.Comment);
-
-            return MessageActionResult.Success();
-        }, cancellationToken);
-    }
-
-    public Task<MessageActionResult> RejectAsync(Guid id, MessageActionRequest request, CancellationToken cancellationToken)
-    {
-        return LockAndChangeMessageAsync(id, async message =>
+        /*
+         * The message is read again under the lock. Between fetching the ids and taking the lock, the message could
+         * be retried, rescheduled or rejected by someone else, so only the fresh copy is used.
+         */
+        var message = await repository.GetByIdAsync(id, cancellationToken);
+        if (message is null)
         {
-            if (!await repository.DeleteAsync(id, cancellationToken))
-                return MessageActionResult.NotFound(id);
+            logger.LogDebug("There is no failed in-memory message with the {MessageId} id.", id);
+            return MessageActionResult.NotFound(id);
+        }
 
-            logger.LogInformation(
-                "The '{MessageName}' failed in-memory message with the {MessageId} id is rejected by {PerformedBy}. Comment: {Comment}",
-                message.MessageName, id, request?.PerformedBy, request?.Comment);
-
-            return MessageActionResult.Success();
-        }, cancellationToken);
+        return await RetryLockedMessageAsync(message, request, cancellationToken);
     }
 
     #endregion
@@ -113,44 +100,6 @@ internal sealed class FailedMessagesProcessor(
         {
             logger.LogError(exception, "Could not retry the failed in-memory message with the {MessageId} id.", id);
         }
-    }
-
-    /// <summary>
-    /// Takes the message lock, reads the message again under it and applies the change to it. The lock is held until
-    /// the change is done, including the execution of the handlers.
-    /// </summary>
-    /// <param name="id">The id of the message.</param>
-    /// <param name="change">The change to apply to the read message.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>Returns the result of the change, or why the change could not be applied.</returns>
-    private async Task<MessageActionResult> LockAndChangeMessageAsync(Guid id,
-        Func<MessageDetails, Task<MessageActionResult>> change, CancellationToken cancellationToken)
-    {
-        /*
-         * The message lock is not waited for. When the message is already being retried or changed by another
-         * instance or by a user, this action returns AlreadyProcessing at once instead of waiting for it.
-         */
-        await using var messageLock = await lockProvider.TryAcquireLockAsync(
-            FailedMessagesKeys.MessageLock(options.ServiceName, id), TimeSpan.Zero, cancellationToken);
-        if (messageLock is null)
-        {
-            logger.LogDebug(
-                "The failed in-memory message with the {MessageId} id is locked by another instance.", id);
-            return MessageActionResult.AlreadyProcessing(id);
-        }
-
-        /*
-         * The message is read again under the lock. Between fetching the ids and taking the lock, the message could
-         * be executed, rescheduled or rejected by someone else, so only the fresh copy is used.
-         */
-        var message = await repository.GetByIdAsync(id, cancellationToken);
-        if (message is null)
-        {
-            logger.LogDebug("There is no failed in-memory message with the {MessageId} id.", id);
-            return MessageActionResult.NotFound(id);
-        }
-
-        return await change(message);
     }
 
     /// <summary>

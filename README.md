@@ -307,7 +307,7 @@ An action which cannot be done does not throw: it returns a `MessageActionResult
 |---|---|
 | `Success` | The action is done. |
 | `NotFound` | There is no message with this id. |
-| `AlreadyProcessing` | Another replica is working on this message right now. |
+| `AlreadyProcessing` | Another replica or user is executing this message right now. |
 | `Failed` | The handlers failed again, or the message cannot be read back. |
 
 **No endpoints and no authorization are included.** Write your own controller and protect every endpoint with your own
@@ -366,9 +366,9 @@ public class ExecuteFailedInMemoryEvent(
 The background retry runs under a distributed lock of the service: only one replica runs a round at a time, and the
 other replicas skip the round while it is running.
 
-Every message is also executed or changed under a distributed lock of its own, and the message is read again **after**
-the lock is taken. So an action of a user never races the background retry: while a message is being executed, an
-action on it returns `AlreadyProcessing`.
+Every message is also executed under a distributed lock of its own, and the message is read again **after** the lock
+is taken. So the same message is never executed twice at the same time: while it is being executed, `ExecuteAsync` on
+it returns `AlreadyProcessing`.
 
 All failed messages of a service are kept in one cache entry, and every change of it is made under a lock of the
 service: the entry is read, changed and written back while the lock is held, so two replicas never write over the change

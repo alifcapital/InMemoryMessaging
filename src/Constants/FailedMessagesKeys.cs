@@ -4,7 +4,7 @@ namespace InMemoryMessaging.Constants;
 /// The key the failed messages are kept under and the names of the three distributed locks of the retry:
 /// <list type="bullet">
 /// <item><description>the round lock: only one instance retries the due messages at a time;</description></item>
-/// <item><description>the message lock: only one instance or user action works with a message at a time;</description></item>
+/// <item><description>the message lock: only one instance or user retries a message at a time;</description></item>
 /// <item><description>the store lock: two changes of the stored list never overwrite each other.</description></item>
 /// </list>
 /// Each of them starts with the name of the service, so several services share one cache and one lock provider.
@@ -32,8 +32,8 @@ internal static class FailedMessagesKeys
     internal static string RetryRoundLock(string serviceName) => $"{serviceName}:InMemoryMessaging:FailedMessages:RetryRoundLock";
 
     /// <summary>
-    /// The name of the message lock. It is held while a message is retried, rescheduled or rejected, including the
-    /// execution of its handlers, so a user action never runs together with the retry of the same message.
+    /// The name of the message lock. It is held while a message is retried, including the execution of its handlers,
+    /// so the same message is never retried twice at the same time.
     /// </summary>
     /// <param name="serviceName">The name of the service.</param>
     /// <param name="messageId">The id of the message.</param>

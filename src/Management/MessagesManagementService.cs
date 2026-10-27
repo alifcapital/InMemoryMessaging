@@ -3,12 +3,14 @@ using InMemoryMessaging.Extensions;
 using InMemoryMessaging.Management.Models;
 using InMemoryMessaging.Repositories;
 using InMemoryMessaging.Services;
+using Microsoft.Extensions.Logging;
 
 namespace InMemoryMessaging.Management;
 
 internal sealed class MessagesManagementService(
     IFailedMessageRepository repository,
-    IFailedMessagesProcessor processor) : IMessagesManagementService
+    IFailedMessagesProcessor processor,
+    ILogger<MessagesManagementService> logger) : IMessagesManagementService
 {
     #region Reading
 
@@ -38,19 +40,33 @@ internal sealed class MessagesManagementService(
         return processor.RetryMessageAsync(id, request, cancellationToken);
     }
 
-    public Task<MessageActionResult> RescheduleAsync(Guid id, DateTimeOffset tryAfterAt, MessageActionRequest request,
+    public async Task<MessageActionResult> RescheduleAsync(Guid id, DateTimeOffset tryAfterAt, MessageActionRequest request,
         CancellationToken cancellationToken = default)
     {
         EnsureIsEnabled();
 
-        return processor.RescheduleAsync(id, tryAfterAt, request, cancellationToken);
+        if (!await repository.RescheduleAsync(id, tryAfterAt, request, cancellationToken))
+            return MessageActionResult.NotFound(id);
+
+        logger.LogInformation(
+            "The failed in-memory message with the {MessageId} id is rescheduled to {TryAfterAt} by {PerformedBy}. Comment: {Comment}",
+            id, tryAfterAt, request?.PerformedBy, request?.Comment);
+
+        return MessageActionResult.Success();
     }
 
-    public Task<MessageActionResult> RejectAsync(Guid id, MessageActionRequest request, CancellationToken cancellationToken = default)
+    public async Task<MessageActionResult> RejectAsync(Guid id, MessageActionRequest request, CancellationToken cancellationToken = default)
     {
         EnsureIsEnabled();
 
-        return processor.RejectAsync(id, request, cancellationToken);
+        if (!await repository.DeleteAsync(id, cancellationToken))
+            return MessageActionResult.NotFound(id);
+
+        logger.LogInformation(
+            "The failed in-memory message with the {MessageId} id is rejected by {PerformedBy}. Comment: {Comment}",
+            id, request?.PerformedBy, request?.Comment);
+
+        return MessageActionResult.Success();
     }
 
     #endregion
