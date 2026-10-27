@@ -1,7 +1,7 @@
 namespace InMemoryMessaging.Management.Models;
 
 /// <summary>
-/// The request of a manual action on a failed message.
+/// The request of a manual action: who performs it and why. Another library can inherit it to add its own fields.
 /// </summary>
 public record MessageActionRequest
 {
