@@ -96,17 +96,13 @@ public class MemoryMessagingExtensionsTests : BaseTestEntity
     }
 
     [Test]
-    public void AddInMemoryMessaging_RetryIsDisabled_ShouldRegisterManagementServiceWhichThrows()
+    public void AddInMemoryMessaging_RetryIsDisabled_ShouldNotRegisterManagementService()
     {
         ServiceCollection services = new();
-        services.AddLogging();
 
         services.AddInMemoryMessaging(EmptyConfiguration, Assemblies, options => options with { IsEnabled = false });
-        using var serviceProvider = services.BuildServiceProvider();
-        using var scope = serviceProvider.CreateScope();
-        var managementService = scope.ServiceProvider.GetRequiredService<IMessagesManagementService>();
 
-        Assert.ThrowsAsync<InMemoryMessagingException>(() => managementService.GetMessagesAsync(filter: null));
+        Assert.That(services.Any(service => service.ServiceType == typeof(IMessagesManagementService)), Is.False);
     }
 
     [Test]

@@ -5,7 +5,7 @@ namespace InMemoryMessaging.Management;
 /// <summary>
 /// The service for viewing and managing the failed in-memory messages by the external application.
 /// The library applies no authorization, so the host application must protect each operation with its own permissions.
-/// All methods throw an <see cref="Exceptions.InMemoryMessagingException"/> when the retry is not enabled.
+/// It is registered only while the retry is enabled.
 /// </summary>
 public interface IMessagesManagementService
 {

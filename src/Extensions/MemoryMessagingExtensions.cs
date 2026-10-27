@@ -9,7 +9,6 @@ using InMemoryMessaging.Repositories;
 using InMemoryMessaging.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 
 namespace InMemoryMessaging.Extensions;
 
@@ -39,10 +38,6 @@ public static class MemoryMessagingExtensions
 
         services.AddSingleton(options);
         services.AddScoped<IMessageManager, MessageManager>();
-        services.AddScoped<IMessagesManagementService>(serviceProvider => new MessagesManagementService(
-            serviceProvider.GetService<IFailedMessageRepository>(),
-            serviceProvider.GetService<IFailedMessagesProcessor>(),
-            serviceProvider.GetRequiredService<ILogger<MessagesManagementService>>()));
 
         RegisterRetryServices(services, options);
         RegisterAllMessageHandlersToDependencyInjectionAndMessagingManager(services, assemblies, baseMassageTypeToFilter);
@@ -147,6 +142,7 @@ public static class MemoryMessagingExtensions
 
         services.AddSingleton<IFailedMessageRepository, FusionCacheFailedMessageRepository>();
         services.AddSingleton<IFailedMessagesProcessor, FailedMessagesProcessor>();
+        services.AddScoped<IMessagesManagementService, MessagesManagementService>();
         services.AddHostedService<FailedMessagesProcessorJob>();
     }
 

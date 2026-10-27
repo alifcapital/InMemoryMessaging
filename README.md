@@ -280,8 +280,8 @@ already done before doing it again.
 
 ### Managing the failed messages
 
-The library does not include an admin page. It registers the `IMessagesManagementService` scoped service, so the
-application can build its own page or endpoints: to find the messages which keep failing, run them again after a fix,
+The library does not include an admin page. While the retry is enabled, it registers the `IMessagesManagementService`
+scoped service, so the application can build its own page or endpoints: to find the messages which keep failing, run them again after a fix,
 change when they are retried, or cancel them.
 
 The store keeps only the messages which still wait for their handlers: a message is removed once all its handlers are
@@ -309,8 +309,8 @@ An action which cannot be done does not throw: it returns a `MessageActionResult
 | `Failed` | The handlers failed again, or the message cannot be read back. |
 
 **No endpoints and no authorization are included.** Write your own controller and protect every endpoint with your own
-permissions. Every method throws an `InMemoryMessagingException` while the retry is disabled, so an application may
-inject the service unconditionally and report it.
+permissions. The service is registered only while the retry is enabled, so an application which may run with the retry
+disabled gets it with `GetService` and reports when it is missing.
 
 The example below is written in the style of CBS, the same way as its inbox and outbox endpoints. The permission,
 the route and the request DTO are examples:
@@ -334,13 +334,16 @@ public class FailedInMemoryEventsController : BaseApiController
 }
 
 public class ExecuteFailedInMemoryEvent(
-    IMessagesManagementService messagesManagementService,
+    IServiceProvider serviceProvider,
     UserSessionInfo userSessionInfo
 ) : IUseCase
 {
     public async Task<IRequestResult> ExecuteAsync(Guid messageId, ManualInMemoryEventActionRequest request,
         CancellationToken cancellationToken)
     {
+        var messagesManagementService = serviceProvider.GetService<IMessagesManagementService>()
+            ?? throw new CbsBusinessRuleException("The retry of the failed in-memory events is not enabled in this service.");
+
         var actionRequest = new MessageActionRequest
         {
             PerformedBy = userSessionInfo.UserName,
