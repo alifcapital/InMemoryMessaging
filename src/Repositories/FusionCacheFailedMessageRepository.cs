@@ -72,7 +72,7 @@ internal sealed class FusionCacheFailedMessageRepository(
 
     public Task AddAsync(MessageDetails message, CancellationToken cancellationToken)
     {
-        return ChangeAsync(messages =>
+        return ExecuteCommandActionAsync(messages =>
         {
             messages.Add(message);
             return true;
@@ -81,7 +81,7 @@ internal sealed class FusionCacheFailedMessageRepository(
 
     public Task<bool> UpdateAsync(MessageDetails message, CancellationToken cancellationToken)
     {
-        return ChangeAsync(messages =>
+        return ExecuteCommandActionAsync(messages =>
         {
             var index = messages.FindIndex(stored => stored.Id == message.Id);
             if (index < 0)
@@ -95,7 +95,7 @@ internal sealed class FusionCacheFailedMessageRepository(
     public Task<bool> RescheduleAsync(Guid id, DateTimeOffset tryAfterAt, MessageActionRequest request,
         CancellationToken cancellationToken)
     {
-        return ChangeAsync(messages =>
+        return ExecuteCommandActionAsync(messages =>
         {
             var message = messages.Find(stored => stored.Id == id);
             if (message is null)
@@ -111,7 +111,7 @@ internal sealed class FusionCacheFailedMessageRepository(
 
     public Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken)
     {
-        return ChangeAsync(messages => messages.RemoveAll(stored => stored.Id == id) > 0, cancellationToken);
+        return ExecuteCommandActionAsync(messages => messages.RemoveAll(stored => stored.Id == id) > 0, cancellationToken);
     }
 
     #endregion
@@ -168,17 +168,19 @@ internal sealed class FusionCacheFailedMessageRepository(
     #region Private Methods
 
     /// <summary>
-    /// Reads the entry, applies the change and writes the entry back, all under the store lock.
+    /// Reads the entry, executes the command action on the messages (add, update or delete) and writes the entry back,
+    /// all under the store lock.
     /// </summary>
-    /// <param name="change">Changes the read messages. Returns false when there is nothing to write.</param>
+    /// <param name="commandAction">The action on the read messages. Returns false when there is nothing to write.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>Returns the result of the change.</returns>
-    private async Task<bool> ChangeAsync(Func<List<MessageDetails>, bool> change, CancellationToken cancellationToken)
+    /// <returns>Returns the result of the command action.</returns>
+    private async Task<bool> ExecuteCommandActionAsync(Func<List<MessageDetails>, bool> commandAction,
+        CancellationToken cancellationToken)
     {
         await using var storeLock = await lockProvider.AcquireLockAsync(_storeLockName, StoreLockTimeout, cancellationToken);
 
         var messages = await ReadAsync(cancellationToken);
-        if (!change(messages))
+        if (!commandAction(messages))
             return false;
 
         await WriteAsync(messages, cancellationToken);
