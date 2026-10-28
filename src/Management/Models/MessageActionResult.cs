@@ -8,9 +8,9 @@ namespace InMemoryMessaging.Management.Models;
 public record MessageActionResult
 {
     /// <summary>
-    /// The name of what the action is done on. It is shown in the failure reasons.
+    /// The name of the functionality the action is done in. It is shown in the failure reasons.
     /// </summary>
-    protected virtual string FunctionalityName => "failed in-memory message";
+    protected virtual string FunctionalityName => "In-memory messaging";
 
     /// <summary>
     /// The result status of the action.
@@ -56,7 +56,7 @@ public record MessageActionResult
         return new TResult
         {
             Status = MessageActionResultStatus.NotFound,
-            FailureReason = $"There is no {functionalityName} with the {id} id."
+            FailureReason = $"There is no message with the {id} id in the {functionalityName}."
         };
     }
 
@@ -72,7 +72,7 @@ public record MessageActionResult
         return new TResult
         {
             Status = MessageActionResultStatus.AlreadyProcessing,
-            FailureReason = $"The {functionalityName} with the {id} id is being processed at the moment. Try again later."
+            FailureReason = $"The message with the {id} id of the {functionalityName} is being processed at the moment. Try again later."
         };
     }
 
