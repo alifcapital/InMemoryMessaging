@@ -59,6 +59,113 @@ public class FusionCacheFailedMessageRepositoryTests : BaseTestEntity
 
     #endregion
 
+    #region GetByIdAsync
+
+    [Test]
+    public async Task GetByIdAsync_MessageIsNotStored_ShouldReturnNull()
+    {
+        var repository = TestFailedMessageRepository.Create();
+        await repository.AddAsync(CreateMessage(), CancellationToken.None);
+
+        var storedMessage = await repository.GetByIdAsync(Guid.CreateVersion7(), CancellationToken.None);
+
+        Assert.That(storedMessage, Is.Null);
+    }
+
+    #endregion
+
+    #region UpdateAsync
+
+    [Test]
+    public async Task UpdateAsync_MessageIsStored_ShouldReplaceIt()
+    {
+        var repository = TestFailedMessageRepository.Create();
+        var message = CreateMessage();
+        await repository.AddAsync(message, CancellationToken.None);
+        var changedMessage = message with { TryCount = 4, FailureReason = "Failed again." };
+
+        var isUpdated = await repository.UpdateAsync(changedMessage, CancellationToken.None);
+        var storedMessage = await repository.GetByIdAsync(message.Id, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(isUpdated, Is.True);
+            Assert.That(storedMessage!.TryCount, Is.EqualTo(changedMessage.TryCount));
+            Assert.That(storedMessage.FailureReason, Is.EqualTo(changedMessage.FailureReason));
+        });
+    }
+
+    [Test]
+    public async Task UpdateAsync_MessageIsNotStored_ShouldReturnFalseAndNotAddIt()
+    {
+        var repository = TestFailedMessageRepository.Create();
+        var message = CreateMessage();
+
+        var isUpdated = await repository.UpdateAsync(message, CancellationToken.None);
+        var storedMessage = await repository.GetByIdAsync(message.Id, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(isUpdated, Is.False);
+            Assert.That(storedMessage, Is.Null);
+        });
+    }
+
+    #endregion
+
+    #region DeleteAsync
+
+    [Test]
+    public async Task DeleteAsync_MessageIsStored_ShouldRemoveIt()
+    {
+        var repository = TestFailedMessageRepository.Create();
+        var message = CreateMessage();
+        await repository.AddAsync(message, CancellationToken.None);
+
+        var isDeleted = await repository.DeleteAsync(message.Id, CancellationToken.None);
+        var storedMessage = await repository.GetByIdAsync(message.Id, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(isDeleted, Is.True);
+            Assert.That(storedMessage, Is.Null);
+        });
+    }
+
+    [Test]
+    public async Task DeleteAsync_MessageIsNotStored_ShouldReturnFalse()
+    {
+        var repository = TestFailedMessageRepository.Create();
+        await repository.AddAsync(CreateMessage(), CancellationToken.None);
+
+        var isDeleted = await repository.DeleteAsync(Guid.CreateVersion7(), CancellationToken.None);
+
+        Assert.That(isDeleted, Is.False);
+    }
+
+    #endregion
+
+    #region GetDueMessageIdsAsync
+
+    [Test]
+    public async Task GetDueMessageIdsAsync_SomeMessagesAreDue_ShouldReturnOnlyDueOnesEarliestFirst()
+    {
+        var repository = TestFailedMessageRepository.Create();
+        var now = DateTimeOffset.Now;
+        var laterDueMessage = CreateMessage() with { Id = Guid.CreateVersion7(), TryAfterAt = now.AddMinutes(-1) };
+        var earlierDueMessage = CreateMessage() with { Id = Guid.CreateVersion7(), TryAfterAt = now.AddMinutes(-5) };
+        var notDueMessage = CreateMessage() with { Id = Guid.CreateVersion7(), TryAfterAt = now.AddMinutes(5) };
+        await repository.AddAsync(laterDueMessage, CancellationToken.None);
+        await repository.AddAsync(earlierDueMessage, CancellationToken.None);
+        await repository.AddAsync(notDueMessage, CancellationToken.None);
+
+        var dueMessageIds = await repository.GetDueMessageIdsAsync(now, CancellationToken.None);
+
+        Assert.That(dueMessageIds, Is.EqualTo(new[] { earlierDueMessage.Id, laterDueMessage.Id }));
+    }
+
+    #endregion
+
     #region GetMessagesAsync
 
     [Test]
@@ -88,6 +195,43 @@ public class FusionCacheFailedMessageRepositoryTests : BaseTestEntity
         });
     }
 
+    [Test]
+    public async Task GetMessagesAsync_FilteredByMessageName_ShouldReturnOnlyMatchingMessages()
+    {
+        var repository = TestFailedMessageRepository.Create();
+        var matchingMessage = CreateMessage();
+        var otherMessage = CreateMessage() with { Id = Guid.CreateVersion7(), MessageName = "OrderCancelled" };
+        await repository.AddAsync(matchingMessage, CancellationToken.None);
+        await repository.AddAsync(otherMessage, CancellationToken.None);
+        var filter = new MessagesFilter { MessageName = matchingMessage.MessageName };
+
+        var page = await repository.GetMessagesAsync(filter, CancellationToken.None);
+
+        Assert.That(page.Items.Select(item => item.Id), Is.EqualTo(new[] { matchingMessage.Id }));
+    }
+
+    [Test]
+    public async Task GetMessagesAsync_MoreMessagesThanPageSize_ShouldReturnNewestPageAndTellThereIsNextPage()
+    {
+        var repository = TestFailedMessageRepository.Create();
+        var now = DateTimeOffset.Now;
+        var oldestMessage = CreateMessage() with { Id = Guid.CreateVersion7(), CreatedAt = now.AddMinutes(-3) };
+        var middleMessage = CreateMessage() with { Id = Guid.CreateVersion7(), CreatedAt = now.AddMinutes(-2) };
+        var newestMessage = CreateMessage() with { Id = Guid.CreateVersion7(), CreatedAt = now.AddMinutes(-1) };
+        await repository.AddAsync(oldestMessage, CancellationToken.None);
+        await repository.AddAsync(middleMessage, CancellationToken.None);
+        await repository.AddAsync(newestMessage, CancellationToken.None);
+        var filter = new MessagesFilter { PageIndex = 1, PageSize = 2 };
+
+        var page = await repository.GetMessagesAsync(filter, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(page.Items.Select(item => item.Id), Is.EqualTo(new[] { newestMessage.Id, middleMessage.Id }));
+            Assert.That(page.HasNextPage, Is.True);
+        });
+    }
+
     #endregion
 
     #region RescheduleAsync
@@ -112,6 +256,18 @@ public class FusionCacheFailedMessageRepositoryTests : BaseTestEntity
             Assert.That(storedMessage.StatusComment, Is.EqualTo(request.Comment));
             Assert.That(storedMessage.TryCount, Is.EqualTo(message.TryCount));
         });
+    }
+
+    [Test]
+    public async Task RescheduleAsync_MessageIsNotStored_ShouldReturnFalse()
+    {
+        var repository = TestFailedMessageRepository.Create();
+        var request = new MessageActionRequest { PerformedBy = "Operator" };
+
+        var isRescheduled = await repository.RescheduleAsync(Guid.CreateVersion7(), DateTimeOffset.Now.AddHours(1),
+            request, CancellationToken.None);
+
+        Assert.That(isRescheduled, Is.False);
     }
 
     #endregion
