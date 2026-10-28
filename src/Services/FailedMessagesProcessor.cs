@@ -120,7 +120,7 @@ internal sealed class FailedMessagesProcessor(
             return await RecordFailedAttemptAsync(message, resolvingError, request, cancellationToken);
         }
 
-        if (!MessageSerializer.TryDeserialize(message.Payload, resolution.MessageType, out var publishedMessage, out var readingError))
+        if (!MessageJsonSerializer.TryDeserialize(message.Payload, resolution.MessageType, out var publishedMessage, out var readingError))
         {
             logger.LogError("Could not read the payload of the failed in-memory message with the {MessageId} id. Reason: {Reason}",
                 message.Id, readingError);

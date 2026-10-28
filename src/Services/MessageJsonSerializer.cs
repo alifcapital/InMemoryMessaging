@@ -5,15 +5,15 @@ using InMemoryMessaging.Converters;
 namespace InMemoryMessaging.Services;
 
 /// <summary>
-/// Writes the payload of a message to store it, and reads it back to retry its handlers.
-/// A payload which cannot be written or read is reported as a reason rather than thrown.
+/// Serializes a message to the JSON payload to store it, and deserializes the payload back to retry its handlers.
+/// A payload which cannot be serialized or deserialized is reported as a reason rather than thrown.
 /// </summary>
-internal static class MessageSerializer
+internal static class MessageJsonSerializer
 {
     /// <summary>
-    /// Writes the message by its runtime type, so the properties of the concrete type are kept.
+    /// Serializes the message to JSON by its runtime type, so the properties of the concrete type are kept.
     /// </summary>
-    /// <returns>Returns false when the message cannot be written, and the reason in the <paramref name="error"/>.</returns>
+    /// <returns>Returns false when the message cannot be serialized, and the reason in the <paramref name="error"/>.</returns>
     internal static bool TrySerialize(IMessage message, out string payload, out string error)
     {
         payload = null;
@@ -28,15 +28,15 @@ internal static class MessageSerializer
         }
         catch (Exception exception)
         {
-            error = $"Could not write the payload of the '{messageType.FullName}' message: {exception.Message}";
+            error = $"Could not serialize the '{messageType.FullName}' message to JSON: {exception.Message}";
             return false;
         }
     }
 
     /// <summary>
-    /// Reads the payload back as the given type.
+    /// Deserializes the JSON payload back to the given type of the message.
     /// </summary>
-    /// <returns>Returns false when the payload cannot be read, and the reason in the <paramref name="error"/>.</returns>
+    /// <returns>Returns false when the payload cannot be deserialized, and the reason in the <paramref name="error"/>.</returns>
     internal static bool TryDeserialize(string payload, Type messageType, out IMessage message, out string error)
     {
         message = null;
@@ -49,7 +49,7 @@ internal static class MessageSerializer
         }
         catch (Exception exception)
         {
-            error = $"Could not read the payload of the '{messageType.FullName}' message: {exception.Message}";
+            error = $"Could not deserialize the JSON payload of the '{messageType.FullName}' message: {exception.Message}";
             return false;
         }
     }

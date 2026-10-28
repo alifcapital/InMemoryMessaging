@@ -221,7 +221,7 @@ internal class MessageManager(
          * It is taken after the handlers ran, so a handler must not change the message it gets: the retry would get
          * the changed values instead of the published ones.
          */
-        if (!MessageSerializer.TrySerialize(message, out var payload, out var serializationError))
+        if (!MessageJsonSerializer.TrySerialize(message, out var payload, out var serializationError))
         {
             logger.LogError(
                 "The '{MessageName}' message is not retried, since its payload cannot be stored. Reason: {Reason}",
