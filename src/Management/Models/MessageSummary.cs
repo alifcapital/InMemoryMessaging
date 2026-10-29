@@ -18,9 +18,9 @@ public record MessageSummary
     public string MessageName { get; set; }
 
     /// <summary>
-    /// The full path (namespace) of the type of the message.
+    /// The full name of the type of the message.
     /// </summary>
-    public string MessagePath { get; set; }
+    public string MessageFullName { get; set; }
 
     /// <summary>
     /// The local time when the message failed for the first time.

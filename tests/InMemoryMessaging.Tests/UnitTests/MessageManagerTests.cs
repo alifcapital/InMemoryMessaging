@@ -178,9 +178,9 @@ public class MessageManagerTests : BaseTestEntity
         {
             Assert.That(exception!.Message, Does.Contain(storedMessage!.Id.ToString()));
             Assert.That(storedMessage.MessageName, Is.EqualTo(nameof(OrderPlaced)));
-            Assert.That(storedMessage.MessagePath, Is.EqualTo(typeof(OrderPlaced).FullName));
+            Assert.That(storedMessage.MessageFullName, Is.EqualTo(typeof(OrderPlaced).FullName));
             Assert.That(storedMessage.Payload, Does.Contain(message.Id.ToString()));
-            Assert.That(storedMessage.Handlers.Select(handler => handler.HandlerPath), Is.EquivalentTo(new[]
+            Assert.That(storedMessage.Handlers.Select(handler => handler.HandlerFullName), Is.EquivalentTo(new[]
             {
                 typeof(OrderPlacedAsyncFailingHandler).FullName,
                 typeof(OrderPlacedSecondFailingHandler).FullName

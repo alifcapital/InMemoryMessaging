@@ -7,8 +7,8 @@ namespace InMemoryMessaging.Models;
 /// </summary>
 /// <param name="MessageType">The type of the published message.</param>
 /// <param name="HandlersByMessageType">The registered handlers of each type of the message.</param>
-/// <param name="HandlerPaths">The paths of the failed handlers which are still registered.</param>
+/// <param name="HandlerFullNames">The full names of the failed handlers which are still registered.</param>
 internal readonly record struct MessageResolution(
     Type MessageType,
     ConcurrentDictionary<Type, MessageHandlerInformation[]> HandlersByMessageType,
-    IReadOnlySet<string> HandlerPaths);
+    IReadOnlySet<string> HandlerFullNames);

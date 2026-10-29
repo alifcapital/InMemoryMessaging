@@ -158,7 +158,7 @@ internal sealed class FailedMessagesProcessor(
         {
             MessageManager.OnExecutingReceivedMessage(publishedMessage, scope.ServiceProvider);
             failures = await MessageManager.ExecuteHandlersAsync(publishedMessage, resolution.HandlersByMessageType,
-                resolution.HandlerPaths, scope.ServiceProvider, options);
+                resolution.HandlerFullNames, scope.ServiceProvider, options);
         }
         catch (Exception exception)
         {

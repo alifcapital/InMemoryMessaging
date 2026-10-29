@@ -43,7 +43,7 @@ public class FusionCacheFailedMessageRepositoryTests : BaseTestEntity
         {
             Assert.That(storedMessage!.Id, Is.EqualTo(message.Id));
             Assert.That(storedMessage.MessageName, Is.EqualTo(message.MessageName));
-            Assert.That(storedMessage.MessagePath, Is.EqualTo(message.MessagePath));
+            Assert.That(storedMessage.MessageFullName, Is.EqualTo(message.MessageFullName));
             Assert.That(storedMessage.Payload, Is.EqualTo(message.Payload));
             Assert.That(storedMessage.Handlers, Is.EqualTo(message.Handlers));
             Assert.That(storedMessage.TryCount, Is.EqualTo(message.TryCount));
@@ -183,7 +183,7 @@ public class FusionCacheFailedMessageRepositoryTests : BaseTestEntity
         {
             Assert.That(summary.Id, Is.EqualTo(message.Id));
             Assert.That(summary.MessageName, Is.EqualTo(message.MessageName));
-            Assert.That(summary.MessagePath, Is.EqualTo(message.MessagePath));
+            Assert.That(summary.MessageFullName, Is.EqualTo(message.MessageFullName));
             Assert.That(summary.Handlers, Is.EqualTo(message.Handlers));
             Assert.That(summary.TryCount, Is.EqualTo(message.TryCount));
             Assert.That(summary.FailureReason, Is.EqualTo(message.FailureReason));
@@ -285,12 +285,12 @@ public class FusionCacheFailedMessageRepositoryTests : BaseTestEntity
         {
             Id = Guid.CreateVersion7(),
             MessageName = "OrderPlaced",
-            MessagePath = "Orders.Events.OrderPlaced",
+            MessageFullName = "Orders.Events.OrderPlaced",
             Payload = """{"Id":"0199c4e2-0000-7000-8000-000000000001"}""",
             Handlers =
             [
-                new FailedMessageHandler { HandlerPath = "Orders.Handlers.ReserveOrder", FailureReason = "Could not reserve." },
-                new FailedMessageHandler { HandlerPath = "Orders.Handlers.NotifyCustomer", FailureReason = "Timeout." }
+                new FailedMessageHandler { HandlerFullName = "Orders.Handlers.ReserveOrder", FailureReason = "Could not reserve." },
+                new FailedMessageHandler { HandlerFullName = "Orders.Handlers.NotifyCustomer", FailureReason = "Timeout." }
             ],
             TryCount = 3,
             FailureReason = "ReserveOrder: Could not reserve.",

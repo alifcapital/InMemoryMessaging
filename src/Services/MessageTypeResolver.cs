@@ -28,30 +28,30 @@ internal static class MessageTypeResolver
             return false;
         }
 
-        var messageType = handlersByMessageType.Keys.FirstOrDefault(type => type.FullName == message.MessagePath);
+        var messageType = handlersByMessageType.Keys.FirstOrDefault(type => type.FullName == message.MessageFullName);
         if (messageType is null)
         {
-            error = $"There is no '{message.MessagePath}' message type registered in this application.";
+            error = $"There is no '{message.MessageFullName}' message type registered in this application.";
             return false;
         }
 
-        var registeredHandlerPaths = handlersByMessageType
+        var registeredHandlerFullNames = handlersByMessageType
             .SelectMany(handlers => handlers.Value)
             .Select(handler => handler.MessageHandlerType.FullName)
             .ToHashSet();
 
-        var handlerPaths = message.Handlers
-            .Select(handler => handler.HandlerPath)
-            .Where(registeredHandlerPaths.Contains)
+        var handlerFullNames = message.Handlers
+            .Select(handler => handler.HandlerFullName)
+            .Where(registeredHandlerFullNames.Contains)
             .ToHashSet();
 
-        if (handlerPaths.Count == 0)
+        if (handlerFullNames.Count == 0)
         {
-            error = $"None of the handlers of the '{message.MessageName}' message is registered in this application any more: {string.Join(", ", message.Handlers.Select(handler => handler.HandlerPath))}.";
+            error = $"None of the handlers of the '{message.MessageName}' message is registered in this application any more: {string.Join(", ", message.Handlers.Select(handler => handler.HandlerFullName))}.";
             return false;
         }
 
-        resolution = new MessageResolution(messageType, handlersByMessageType, handlerPaths);
+        resolution = new MessageResolution(messageType, handlersByMessageType, handlerFullNames);
         return true;
     }
 }

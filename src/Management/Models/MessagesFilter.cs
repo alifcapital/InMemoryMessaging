@@ -12,10 +12,10 @@ public record MessagesFilter
     public string MessageName { get; init; }
 
     /// <summary>
-    /// Returns only the messages which still have to be retried by the handler whose path contains the given text
+    /// Returns only the messages which still have to be retried by the handler whose full name contains the given text
     /// (case-insensitive), so the short name of the handler is enough.
     /// </summary>
-    public string HandlerPath { get; init; }
+    public string HandlerFullName { get; init; }
 
     /// <summary>
     /// Returns only the messages which failed at or after the given time.

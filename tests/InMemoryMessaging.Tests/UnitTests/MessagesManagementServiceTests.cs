@@ -121,9 +121,9 @@ public class MessagesManagementServiceTests : BaseTestEntity
         {
             Id = Guid.CreateVersion7(),
             MessageName = "OrderPlaced",
-            MessagePath = "Orders.Events.OrderPlaced",
+            MessageFullName = "Orders.Events.OrderPlaced",
             Payload = """{"Id":"0199c4e2-0000-7000-8000-000000000001"}""",
-            Handlers = [new FailedMessageHandler { HandlerPath = "Orders.Handlers.ReserveOrder", FailureReason = "Could not reserve." }],
+            Handlers = [new FailedMessageHandler { HandlerFullName = "Orders.Handlers.ReserveOrder", FailureReason = "Could not reserve." }],
             TryCount = 1,
             FailureReason = "ReserveOrder: Could not reserve.",
             CreatedAt = now,

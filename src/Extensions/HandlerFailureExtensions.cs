@@ -13,7 +13,7 @@ internal static class HandlerFailureExtensions
     {
         return new FailedMessageHandler
         {
-            HandlerPath = failure.HandlerPath,
+            HandlerFullName = failure.HandlerFullName,
             FailureReason = failure.FailureReason
         };
     }

@@ -109,7 +109,7 @@ internal class MessageManager(
     /// </summary>
     /// <param name="message">The published message.</param>
     /// <param name="handlersByMessageType">The registered handlers of each type of the message.</param>
-    /// <param name="handlerFilter">The full paths of the handlers to execute. Null executes all of them.</param>
+    /// <param name="handlerFilter">The full names of the handlers to execute. Null executes all of them.</param>
     /// <param name="scopedProvider">The service provider to resolve the handlers from.</param>
     /// <param name="options">The options of the retry.</param>
     /// <returns>Returns the failure of each handler which has thrown, in the order the handlers were executed.</returns>
@@ -239,7 +239,7 @@ internal class MessageManager(
         {
             logger.LogError(exception,
                 "Could not store the '{MessageName}' message to retry its failed handlers. The failed handlers: {FailedHandlers}",
-                messageName, string.Join(", ", failures.Select(failure => failure.HandlerPath)));
+                messageName, string.Join(", ", failures.Select(failure => failure.HandlerFullName)));
             return null;
         }
     }
@@ -260,7 +260,7 @@ internal class MessageManager(
         {
             Id = Guid.CreateVersion7(),
             MessageName = messageType.Name,
-            MessagePath = messageType.FullName,
+            MessageFullName = messageType.FullName,
             Payload = payload,
             Handlers = failures.Select(failure => failure.ToFailedMessageHandler()).ToArray(),
             TryCount = 0,

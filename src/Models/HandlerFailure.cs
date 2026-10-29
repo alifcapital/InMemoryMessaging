@@ -12,7 +12,7 @@ internal readonly record struct HandlerFailure(
     string FailureReason)
 {
     /// <summary>
-    /// The full path (namespace) of the type of the failed handler.
+    /// The full name of the type of the failed handler.
     /// </summary>
-    public string HandlerPath => MessageHandlerType.FullName;
+    public string HandlerFullName => MessageHandlerType.FullName;
 }

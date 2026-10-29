@@ -236,8 +236,8 @@ internal sealed class FusionCacheFailedMessageRepository(
         if (!ContainsIgnoringCase(message.FailureReason, filter.FailureReasonContains)) return false;
         if (!ContainsIgnoringCase(message.Payload, filter.PayloadContains)) return false;
 
-        if (!string.IsNullOrWhiteSpace(filter.HandlerPath) &&
-            !message.Handlers.Any(handler => handler.HandlerPath.Contains(filter.HandlerPath, StringComparison.OrdinalIgnoreCase)))
+        if (!string.IsNullOrWhiteSpace(filter.HandlerFullName) &&
+            !message.Handlers.Any(handler => handler.HandlerFullName.Contains(filter.HandlerFullName, StringComparison.OrdinalIgnoreCase)))
             return false;
 
         return true;

@@ -6,9 +6,9 @@ namespace InMemoryMessaging.Models;
 public record FailedMessageHandler
 {
     /// <summary>
-    /// The full path (namespace) of the type of the handler. It is how the handler is found again while retrying it.
+    /// The full name of the type of the handler. It is how the handler is found again while retrying it.
     /// </summary>
-    public required string HandlerPath { get; init; }
+    public required string HandlerFullName { get; init; }
 
     /// <summary>
     /// The reason of the last failure of this handler.
