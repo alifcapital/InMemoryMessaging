@@ -153,13 +153,6 @@ internal sealed class FailedMessagesProcessor(
          */
         await using var scope = serviceScopeFactory.CreateAsyncScope();
 
-        /*
-         * The result is written without the cancellation token. If the application stops or the request of the user is
-         * aborted while the handlers run, the handlers are already executed, so their result must still be written.
-         * Otherwise the message stays in the store unchanged, and the executed handlers run again on the next retry.
-         */
-        var writingToken = CancellationToken.None;
-
         List<HandlerFailure> failures;
         try
         {
@@ -170,28 +163,40 @@ internal sealed class FailedMessagesProcessor(
         catch (Exception exception)
         {
             activity?.SetStatus(ActivityStatusCode.Error);
-            return await RecordFailedAttemptAsync(message, exception.ToFailureReason(options.MaxFailureReasonLength), request, writingToken);
+            return await RecordFailedAttemptAsync(message, exception.ToFailureReason(options.MaxFailureReasonLength), request,
+                CancellationToken.None);
         }
 
+        if (failures.Count > 0)
+            activity?.SetStatus(ActivityStatusCode.Error);
+
+        return await WriteResultAsync(message, failures, request);
+    }
+
+    /// <summary>
+    /// Writes the result of the retried handlers: removes the message when all of them are executed, otherwise keeps
+    /// only the handlers which failed again. It is written without the cancellation token, since the handlers are
+    /// already executed: otherwise they would run again on the next retry.
+    /// </summary>
+    /// <param name="message">The locked message.</param>
+    /// <param name="failures">The failure of each retried handler which has thrown again.</param>
+    /// <param name="request">The information of the manual action, or null when the retry is the background one.</param>
+    /// <returns>Returns the result of the attempt.</returns>
+    private async Task<MessageActionResult> WriteResultAsync(MessageDetails message, List<HandlerFailure> failures,
+        MessageActionRequest request)
+    {
         if (failures.Count == 0)
         {
-            await repository.DeleteAsync(message.Id, writingToken);
+            await repository.DeleteAsync(message.Id, CancellationToken.None);
 
             logger.LogInformation("All handlers of the '{MessageName}' failed in-memory message with the {MessageId} id are executed.",
                 message.MessageName, message.Id);
             return MessageActionResult.Success();
         }
 
-        activity?.SetStatus(ActivityStatusCode.Error);
-
-        /*
-         * Only the handlers which failed again stay in the message. The handlers which succeeded now are removed
-         * from it, so the next retry does not execute them a second time.
-         */
         message.Handlers = failures.Select(failure => failure.ToFailedMessageHandler()).ToArray();
-
-        var failureReason = failures.CombineFailureReasons(options.MaxFailureReasonLength);
-        return await RecordFailedAttemptAsync(message, failureReason, request, writingToken);
+        return await RecordFailedAttemptAsync(message, failures.CombineFailureReasons(options.MaxFailureReasonLength), request,
+            CancellationToken.None);
     }
 
     /// <summary>
