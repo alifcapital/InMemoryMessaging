@@ -40,19 +40,14 @@ internal static class MessageTypeResolver
             .Select(handler => handler.MessageHandlerType.FullName)
             .ToHashSet();
 
-        var handlerPaths = new HashSet<string>();
-        var unknownHandlerPaths = new List<string>();
-        foreach (var handler in message.Handlers)
-        {
-            if (registeredHandlerPaths.Contains(handler.HandlerPath))
-                handlerPaths.Add(handler.HandlerPath);
-            else
-                unknownHandlerPaths.Add(handler.HandlerPath);
-        }
+        var handlerPaths = message.Handlers
+            .Select(handler => handler.HandlerPath)
+            .Where(registeredHandlerPaths.Contains)
+            .ToHashSet();
 
         if (handlerPaths.Count == 0)
         {
-            error = $"None of the handlers of the '{message.MessageName}' message is registered in this application any more: {string.Join(", ", unknownHandlerPaths)}.";
+            error = $"None of the handlers of the '{message.MessageName}' message is registered in this application any more: {string.Join(", ", message.Handlers.Select(handler => handler.HandlerPath))}.";
             return false;
         }
 
