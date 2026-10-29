@@ -295,6 +295,9 @@ executed, or once it is rejected. There is no history of the executed or rejecte
 | `RescheduleAsync(id, tryAfterAt, request, ct)` | Schedules the remaining handlers to be retried after the given time. |
 | `RejectAsync(id, request, ct)` | Removes the message, so its handlers are never retried. |
 
+A message which is being retried at the moment cannot be executed, rescheduled or rejected: the action returns the
+`AlreadyProcessing` status, and it can be tried again a bit later.
+
 Every action takes a `MessageActionRequest` with `PerformedBy` and `Comment`. Rescheduling and rejecting write them to
 the log. A message which stays in the store after an action keeps them in its `UpdatedBy` and `StatusComment`.
 

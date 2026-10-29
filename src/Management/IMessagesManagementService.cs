@@ -30,13 +30,15 @@ public interface IMessagesManagementService
     Task<MessageActionResult> ExecuteAsync(Guid id, MessageActionRequest request, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Schedules the remaining handlers of the message to be retried after the given time.
+    /// Schedules the remaining handlers of the message to be retried after the given time. While the message is
+    /// retried, it is not changed and the AlreadyProcessing status is returned.
     /// </summary>
     Task<MessageActionResult> RescheduleAsync(Guid id, DateTimeOffset tryAfterAt, MessageActionRequest request,
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Removes the message, so its handlers are never retried. Who removed it and why is written to the log.
+    /// Removes the message, so its handlers are never retried. Who removed it and why is written to the log. While the
+    /// message is retried, it is not removed and the AlreadyProcessing status is returned.
     /// </summary>
     Task<MessageActionResult> RejectAsync(Guid id, MessageActionRequest request, CancellationToken cancellationToken = default);
 }
