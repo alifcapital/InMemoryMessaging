@@ -25,7 +25,7 @@ internal sealed class FusionCacheFailedMessageRepository(
     /// How long the entry is kept. A message leaves the entry when its handlers are executed or it is rejected, so the
     /// entry is not meant to expire by itself.
     /// </summary>
-    private static readonly TimeSpan StoreDuration = TimeSpan.FromDays(3650);
+    private static readonly TimeSpan StoreDuration = TimeSpan.FromDays(365);
 
     /// <summary>
     /// How long a change waits for the store lock. The lock is held only while the entry is read and written, so a

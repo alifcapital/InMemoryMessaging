@@ -248,7 +248,6 @@ internal class MessageManager(
     /// Creates the record of the failed message, due to be retried right away.
     /// </summary>
     /// <param name="message">The published message.</param>
-    /// <param name="messageName">The name of the type of the message.</param>
     /// <param name="payload">The written payload of the message.</param>
     /// <param name="failures">The failure of each handler which has thrown.</param>
     /// <returns>Returns the record to store.</returns>
