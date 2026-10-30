@@ -120,7 +120,7 @@ internal sealed class FailedMessagesProcessor(
         await using var scope = serviceScopeFactory.CreateAsyncScope();
         var messageManager = scope.ServiceProvider.GetRequiredService<IMessageManager>() as MessageManager;
         
-        if (!messageManager.TryGetMessageTypeByName(message, out var messageType, out var resolvingError))
+        if (!messageManager.TryGetMessageType(message, out var messageType, out var resolvingError))
         {
             logger.LogWarning(
                 "Could not resolve the '{MessageName}' failed in-memory message with the {MessageId} id. Reason: {Reason}",
