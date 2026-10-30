@@ -84,6 +84,39 @@ public class MessageManagerTests : BaseTestEntity
     
     #endregion
 
+    #region TryGetHandlersByMessageName
+
+    [Test]
+    public void TryGetHandlersByMessageName_MessageNameIsRegistered_ShouldReturnHandlersOfAllTypesWithSameName()
+    {
+        var memoryMessagingManager = CreateManager();
+
+        var isFound = memoryMessagingManager.TryGetHandlersByMessageName(nameof(UserCreated), out var handlersByMessageType);
+
+        Assert.That(isFound, Is.True);
+        Assert.Multiple(() =>
+        {
+            Assert.That(handlersByMessageType.ContainsKey(typeof(UserCreated)), Is.True);
+            Assert.That(handlersByMessageType.ContainsKey(typeof(Domain.Module3.UserCreated)), Is.True);
+        });
+    }
+
+    [Test]
+    public void TryGetHandlersByMessageName_MessageNameIsNotRegistered_ShouldReturnFalse()
+    {
+        var memoryMessagingManager = CreateManager();
+
+        var isFound = memoryMessagingManager.TryGetHandlersByMessageName("UnknownMessage", out var handlersByMessageType);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(isFound, Is.False);
+            Assert.That(handlersByMessageType, Is.Null);
+        });
+    }
+
+    #endregion
+
     #region PublishAsync
 
     [Test]

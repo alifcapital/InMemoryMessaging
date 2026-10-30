@@ -59,19 +59,15 @@ internal class MessageManager(
         messageTypeHandlers[typeOfMessage] = handlersWithMethod;
     }
 
-    /// <summary>
-    /// Gets the registered handlers of all message types with the given name.
-    /// </summary>
-    internal static bool TryGetMessageHandlers(string messageName,
-        out ConcurrentDictionary<Type, MessageHandlerInformation[]> handlersByMessageType)
+    public bool TryGetHandlersByMessageName(string messageFullName, out ConcurrentDictionary<Type, MessageHandlerInformation[]> messageHandlerInformation)
     {
-        return AllHandlers.TryGetValue(messageName, out handlersByMessageType);
+        return AllHandlers.TryGetValue(messageFullName, out messageHandlerInformation);
     }
 
     public async Task PublishAsync<TMessage>(TMessage message) where TMessage : class, IMessage
     {
         var messageName = message.GetType().Name;
-        if (!TryGetMessageHandlers(messageName, out var messageHandlerInformation))
+        if (!TryGetHandlersByMessageName(messageName, out var messageHandlerInformation))
             return;
 
         using var activity = InMemoryMessagingTraceInstrumentation.StartActivity($"DomainEvent: Executing handler(s) of the '{messageName}' memory message.");
@@ -90,7 +86,7 @@ internal class MessageManager(
             throw new InMemoryMessagingException(ex, BuildFailureMessage(messageName, failedMessageId: null));
         }
 
-        var failures = await ExecuteHandlersAsync(message, messageHandlerInformation, handlerFilter: null, serviceProvider, options);
+        var failures = await ExecuteHandlersAsync(message, handlerFilter: null, serviceProvider, options);
         if (failures.Count == 0)
             return;
 
@@ -103,6 +99,8 @@ internal class MessageManager(
 
     #region Executing handlers
 
+    //todo allscopedProvider rename to serviceProvider
+    
     /// <summary>
     /// Executes the handlers of the message and collects the failures.
     /// The retry calls it as well, passing the handlers which have to be executed again.
@@ -113,17 +111,18 @@ internal class MessageManager(
     /// <param name="scopedProvider">The service provider to resolve the handlers from.</param>
     /// <param name="options">The options of the retry.</param>
     /// <returns>Returns the failure of each handler which has thrown, in the order the handlers were executed.</returns>
-    internal static async Task<List<HandlerFailure>> ExecuteHandlersAsync(
+    internal async Task<List<HandlerFailure>> ExecuteHandlersAsync(
         IMessage message,
-        ConcurrentDictionary<Type, MessageHandlerInformation[]> handlersByMessageType,
-        IReadOnlySet<string> handlerFilter,
+        string[] handlerFilter,
         IServiceProvider scopedProvider,
         InMemoryMessagingRetryOptions options)
     {
+        TryGetHandlersByMessageName(message.GetType().Name, out var messageHandlerInformation);
+        
         var failures = new List<HandlerFailure>();
         var publishingMessageType = message.GetType();
 
-        foreach (var (messageType, messageHandlers) in handlersByMessageType)
+        foreach (var (messageType, messageHandlers) in messageHandlerInformation)
         {
             var handlersToExecute = handlerFilter is null
                 ? messageHandlers

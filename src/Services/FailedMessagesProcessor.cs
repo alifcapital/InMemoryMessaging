@@ -103,7 +103,7 @@ internal sealed class FailedMessagesProcessor(
     }
 
     /// <summary>
-    /// Resolves the type of the locked message, reads its payload and retries its handlers.
+    /// Resolves the type of the locked message, reads its payload and retries its handlers, in a scope of its own.
     /// </summary>
     /// <param name="message">The locked message.</param>
     /// <param name="request">The information of the manual action, or null when the retry is the background one.</param>
@@ -112,7 +112,15 @@ internal sealed class FailedMessagesProcessor(
     private async Task<MessageActionResult> RetryLockedMessageAsync(MessageDetails message, MessageActionRequest request,
         CancellationToken cancellationToken)
     {
-        if (!MessageTypeResolver.TryResolve(message, out var resolution, out var resolvingError))
+        /*
+         * The retried handlers run in a scope of their own, because the scope of the request which published the
+         * message is already gone. The scope is disposed only after the result is written, since some services of
+         * the application (for example the outbox) save what a handler collected while they are disposed.
+         */
+        await using var scope = serviceScopeFactory.CreateAsyncScope();
+        var messageManager = scope.ServiceProvider.GetRequiredService<IMessageManager>() as MessageManager;
+        
+        if (!messageManager.TryGetMessageTypeByName(message, out var messageType, out var resolvingError))
         {
             logger.LogWarning(
                 "Could not resolve the '{MessageName}' failed in-memory message with the {MessageId} id. Reason: {Reason}",
@@ -120,7 +128,7 @@ internal sealed class FailedMessagesProcessor(
             return await RecordFailedAttemptAsync(message, resolvingError, request, cancellationToken);
         }
 
-        if (!MessageJsonSerializer.TryDeserialize(message.Payload, resolution.MessageType, out var publishedMessage, out var readingError))
+        if (!MessageJsonSerializer.TryDeserialize(message.Payload, messageType, out var publishedMessage, out var readingError))
         {
             logger.LogError("Could not read the payload of the failed in-memory message with the {MessageId} id. Reason: {Reason}",
                 message.Id, readingError);
@@ -128,37 +136,31 @@ internal sealed class FailedMessagesProcessor(
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        return await RetryHandlersAsync(message, resolution, publishedMessage, request);
+        return await RetryHandlersAsync(messageManager, message, publishedMessage, scope.ServiceProvider, request);
     }
 
     /// <summary>
-    /// Executes the handlers which still have to be retried, in a scope of its own, and writes the result back.
+    /// Executes the handlers which still have to be retried and writes the result back.
     /// The message is removed once all its handlers are executed.
     /// </summary>
     /// <param name="message">The locked message.</param>
-    /// <param name="resolution">The resolved types of the message and of its handlers.</param>
     /// <param name="publishedMessage">The message read back from its payload.</param>
+    /// <param name="serviceProvider">The service provider of the scope of the retry.</param>
     /// <param name="request">The information of the manual action, or null when the retry is the background one.</param>
     /// <returns>Returns the result of the attempt.</returns>
-    private async Task<MessageActionResult> RetryHandlersAsync(MessageDetails message,
-        MessageResolution resolution, IMessage publishedMessage, MessageActionRequest request)
+    private async Task<MessageActionResult> RetryHandlersAsync(MessageManager messageManager, MessageDetails message, IMessage publishedMessage, IServiceProvider serviceProvider, MessageActionRequest request)
     {
         using var activity = InMemoryMessagingTraceInstrumentation.StartActivity(
             $"DomainEvent: Retrying handler(s) of the '{message.MessageName}' memory message.");
 
-        /*
-         * The retried handlers run in a scope of their own, because the scope of the request which published the
-         * message is already gone. The scope is disposed only after the result is written, since some services of
-         * the application (for example the outbox) save what a handler collected while they are disposed.
-         */
-        await using var scope = serviceScopeFactory.CreateAsyncScope();
-
         List<HandlerFailure> failures;
         try
         {
-            MessageManager.OnExecutingReceivedMessage(publishedMessage, scope.ServiceProvider);
-            failures = await MessageManager.ExecuteHandlersAsync(publishedMessage, resolution.HandlersByMessageType,
-                resolution.HandlerFullNames, scope.ServiceProvider, options);
+            var handlersFullNames = message.Handlers.Select(handler => handler.HandlerFullName).ToArray();
+            
+            MessageManager.OnExecutingReceivedMessage(publishedMessage, serviceProvider);
+            failures = await messageManager.ExecuteHandlersAsync(publishedMessage,
+                handlersFullNames, serviceProvider, options);
         }
         catch (Exception exception)
         {
