@@ -86,7 +86,7 @@ internal class MessageManager(
             throw new InMemoryMessagingException(ex, BuildFailureMessage(messageName, failedMessageId: null));
         }
 
-        var failures = await ExecuteHandlersAsync(message, handlerFilter: null, serviceProvider, options);
+        var failures = await ExecuteHandlersAsync(message, handlerFilter: null);
         if (failures.Count == 0)
             return;
 
@@ -99,23 +99,18 @@ internal class MessageManager(
 
     #region Executing handlers
 
-    //todo allscopedProvider rename to serviceProvider
-    
     /// <summary>
-    /// Executes the handlers of the message and collects the failures.
-    /// The retry calls it as well, passing the handlers which have to be executed again.
+    /// Executes the handlers of the message and collects the failures. The handlers are resolved from the service
+    /// provider of this manager, so the retry takes the manager from its own scope and passes the handlers which
+    /// have to be executed again.
     /// </summary>
     /// <param name="message">The published message.</param>
     /// <param name="handlersByMessageType">The registered handlers of each type of the message.</param>
     /// <param name="handlerFilter">The full names of the handlers to execute. Null executes all of them.</param>
-    /// <param name="scopedProvider">The service provider to resolve the handlers from.</param>
-    /// <param name="options">The options of the retry.</param>
     /// <returns>Returns the failure of each handler which has thrown, in the order the handlers were executed.</returns>
     internal async Task<List<HandlerFailure>> ExecuteHandlersAsync(
         IMessage message,
-        string[] handlerFilter,
-        IServiceProvider scopedProvider,
-        InMemoryMessagingRetryOptions options)
+        string[] handlerFilter)
     {
         TryGetHandlersByMessageName(message.GetType().Name, out var messageHandlerInformation);
         
@@ -143,7 +138,7 @@ internal class MessageManager(
             {
                 try
                 {
-                    await InvokeHandlerAsync(handlerInfo, messageToPublish, scopedProvider);
+                    await InvokeHandlerAsync(handlerInfo, messageToPublish, serviceProvider);
                 }
                 catch (Exception ex)
                 {

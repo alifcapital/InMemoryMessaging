@@ -159,8 +159,7 @@ internal sealed class FailedMessagesProcessor(
             var handlersFullNames = message.Handlers.Select(handler => handler.HandlerFullName).ToArray();
             
             MessageManager.OnExecutingReceivedMessage(publishedMessage, serviceProvider);
-            failures = await messageManager.ExecuteHandlersAsync(publishedMessage,
-                handlersFullNames, serviceProvider, options);
+            failures = await messageManager.ExecuteHandlersAsync(publishedMessage, handlersFullNames);
         }
         catch (Exception exception)
         {
