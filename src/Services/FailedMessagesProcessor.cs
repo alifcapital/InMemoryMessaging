@@ -143,12 +143,14 @@ internal sealed class FailedMessagesProcessor(
     /// Executes the handlers which still have to be retried and writes the result back.
     /// The message is removed once all its handlers are executed.
     /// </summary>
+    /// <param name="messageManager">The message manager of the scope of the retry.</param>
     /// <param name="message">The locked message.</param>
     /// <param name="publishedMessage">The message read back from its payload.</param>
     /// <param name="serviceProvider">The service provider of the scope of the retry.</param>
     /// <param name="request">The information of the manual action, or null when the retry is the background one.</param>
     /// <returns>Returns the result of the attempt.</returns>
-    private async Task<MessageActionResult> RetryHandlersAsync(MessageManager messageManager, MessageDetails message, IMessage publishedMessage, IServiceProvider serviceProvider, MessageActionRequest request)
+    private async Task<MessageActionResult> RetryHandlersAsync(MessageManager messageManager, MessageDetails message,
+        IMessage publishedMessage, IServiceProvider serviceProvider, MessageActionRequest request)
     {
         using var activity = InMemoryMessagingTraceInstrumentation.StartActivity(
             $"DomainEvent: Retrying handler(s) of the '{message.MessageName}' memory message.");

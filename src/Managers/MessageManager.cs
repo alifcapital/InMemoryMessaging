@@ -59,9 +59,17 @@ internal class MessageManager(
         messageTypeHandlers[typeOfMessage] = handlersWithMethod;
     }
 
-    public bool TryGetHandlersByMessageName(string messageFullName, out ConcurrentDictionary<Type, MessageHandlerInformation[]> messageHandlerInformation)
+    /// <summary>
+    /// Gets the registered handlers of all message types with the given name. Several modules may declare their own
+    /// message type with the same name, so the handlers are grouped by the type of the message.
+    /// </summary>
+    /// <param name="messageName">The name of the type of the message, without the namespace.</param>
+    /// <param name="messageHandlerInformation">The handlers of each message type with the given name.</param>
+    /// <returns>Returns false when no message type with the given name is registered.</returns>
+    public bool TryGetHandlersByMessageName(string messageName,
+        out ConcurrentDictionary<Type, MessageHandlerInformation[]> messageHandlerInformation)
     {
-        return AllHandlers.TryGetValue(messageFullName, out messageHandlerInformation);
+        return AllHandlers.TryGetValue(messageName, out messageHandlerInformation);
     }
 
     public async Task PublishAsync<TMessage>(TMessage message) where TMessage : class, IMessage
@@ -105,7 +113,6 @@ internal class MessageManager(
     /// have to be executed again.
     /// </summary>
     /// <param name="message">The published message.</param>
-    /// <param name="handlersByMessageType">The registered handlers of each type of the message.</param>
     /// <param name="handlerFilter">The full names of the handlers to execute. Null executes all of them.</param>
     /// <returns>Returns the failure of each handler which has thrown, in the order the handlers were executed.</returns>
     internal async Task<List<HandlerFailure>> ExecuteHandlersAsync(
