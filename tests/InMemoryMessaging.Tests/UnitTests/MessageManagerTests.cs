@@ -1,16 +1,28 @@
 using System.Collections.Concurrent;
 using System.Reflection;
+using InMemoryMessaging.Configurations;
+using InMemoryMessaging.Exceptions;
 using InMemoryMessaging.Extensions;
+using InMemoryMessaging.Management.Models;
 using InMemoryMessaging.Managers;
 using InMemoryMessaging.Models;
+using InMemoryMessaging.Repositories;
 using InMemoryMessaging.Tests.Domain;
+using InMemoryMessaging.Tests.Domain.Failing;
+using InMemoryMessaging.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 
 namespace InMemoryMessaging.Tests.UnitTests;
 
 public class MessageManagerTests : BaseTestEntity
 {
+    /// <summary>
+    /// The text of the exception which tells that the failed message is stored to be retried.
+    /// </summary>
+    private const string StoredMessageText = "stored";
+
     private readonly ServiceProvider _serviceProvider;
 
     #region SutUp
@@ -35,8 +47,9 @@ public class MessageManagerTests : BaseTestEntity
         var messageType = typeof(UserCreated);
         var messageHandlerType1 = typeof(Domain.Module1.UserCreatedHandler);
         var messageHandlerType2 = typeof(Domain.Module2.UserCreatedHandler);
-        
+
         var handlersInfo = GetAllHandlersInfo();
+
         Assert.That(handlersInfo.ContainsKey(messageType.Name), Is.True);
         Assert.That(handlersInfo[messageType.Name].ContainsKey(messageType), Is.True);
 
@@ -59,9 +72,10 @@ public class MessageManagerTests : BaseTestEntity
         var messageType = typeof(UserCreated);
         var messageHandlerType1 = typeof(Domain.Module1.UserCreatedHandler);
         var messageHandlerType2 = typeof(Domain.Module2.UserCreatedHandler);
-        MessageManager.AddHandlers(messageType, [messageHandlerType1, messageHandlerType2]);
 
+        MessageManager.AddHandlers(messageType, [messageHandlerType1, messageHandlerType2]);
         var handlersInfo = GetAllHandlersInfo();
+
         Assert.That(handlersInfo.ContainsKey(messageType.Name), Is.True);
 
         var handlerTypes = handlersInfo[messageType.Name][messageType];
@@ -70,13 +84,46 @@ public class MessageManagerTests : BaseTestEntity
     
     #endregion
 
+    #region TryGetHandlersByMessageName
+
+    [Test]
+    public void TryGetHandlersByMessageName_MessageNameIsRegistered_ShouldReturnHandlersOfAllTypesWithSameName()
+    {
+        var memoryMessagingManager = CreateManager();
+
+        var isFound = memoryMessagingManager.TryGetHandlersByMessageName(nameof(UserCreated), out var handlersByMessageType);
+
+        Assert.That(isFound, Is.True);
+        Assert.Multiple(() =>
+        {
+            Assert.That(handlersByMessageType.ContainsKey(typeof(UserCreated)), Is.True);
+            Assert.That(handlersByMessageType.ContainsKey(typeof(Domain.Module3.UserCreated)), Is.True);
+        });
+    }
+
+    [Test]
+    public void TryGetHandlersByMessageName_MessageNameIsNotRegistered_ShouldReturnFalse()
+    {
+        var memoryMessagingManager = CreateManager();
+
+        var isFound = memoryMessagingManager.TryGetHandlersByMessageName("UnknownMessage", out var handlersByMessageType);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(isFound, Is.False);
+            Assert.That(handlersByMessageType, Is.Null);
+        });
+    }
+
+    #endregion
+
     #region PublishAsync
 
     [Test]
     public async Task
         PublishAsync_PublishingMessageWhichDoesNotHaveHandler_ShouldNotBeExecuted()
     {
-        var memoryMessagingManager = new MessageManager(_serviceProvider);
+        var memoryMessagingManager = CreateManager();
         var message = new UserDeleted
         {
            Id = Guid.NewGuid(),
@@ -92,7 +139,7 @@ public class MessageManagerTests : BaseTestEntity
     public async Task
         PublishAsync_PublishingMessageWhichHasTwoHandlers_ShouldBeExecutedTwice()
     {
-        var memoryMessagingManager = new MessageManager(_serviceProvider);
+        var memoryMessagingManager = CreateManager();
         var message = new UserCreated
         {
             Id = Guid.NewGuid(),
@@ -108,7 +155,7 @@ public class MessageManagerTests : BaseTestEntity
     public async Task
         PublishAsync_PublishingMessageWithHandlerExpectingDifferentMessageType_ShouldCloneAndCopyMatchingProperties()
     {
-        var memoryMessagingManager = new MessageManager(_serviceProvider);
+        var memoryMessagingManager = CreateManager();
         var message = new UserCreated
         {
             Id = Guid.NewGuid(),
@@ -129,6 +176,69 @@ public class MessageManagerTests : BaseTestEntity
         });
     }
 
+    [Test]
+    public void PublishAsync_OneHandlerFailsWhileRetryIsDisabled_ShouldExecuteOtherHandlersAndStoreNothing()
+    {
+        var memoryMessagingManager = CreateManager();
+        var message = new OrderPlaced { Id = Guid.NewGuid() };
+
+        var exception = Assert.ThrowsAsync<InMemoryMessagePublishException>(() => memoryMessagingManager.PublishAsync(message));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(message.HandledCount, Is.EqualTo(1), "The handler which does not fail must be executed anyway.");
+            Assert.That(exception!.InnerExceptions, Has.Count.EqualTo(2));
+            Assert.That(exception.InnerExceptions.Select(inner => inner.GetType()),
+                Is.EquivalentTo(new[] { typeof(InvalidOperationException), typeof(ArgumentException) }));
+            Assert.That(exception.Message, Does.Contain(nameof(OrderPlaced)));
+            Assert.That(exception.Message, Does.Not.Contain(StoredMessageText), "There is nothing stored while the retry is disabled.");
+        });
+    }
+
+    [Test]
+    public async Task PublishAsync_OneHandlerFailsWhileRetryIsEnabled_ShouldStoreMessageWithFailedHandlersOnly()
+    {
+        var repository = TestFailedMessageRepository.Create();
+        var memoryMessagingManager = CreateManager(repository);
+        var message = new OrderPlaced { Id = Guid.NewGuid() };
+
+        var exception = Assert.ThrowsAsync<InMemoryMessagePublishException>(() => memoryMessagingManager.PublishAsync(message));
+        var page = await repository.GetMessagesAsync(new MessagesFilter(), CancellationToken.None);
+
+        Assert.That(page.Items, Has.Count.EqualTo(1));
+        var storedMessage = await repository.GetByIdAsync(page.Items[0].Id, CancellationToken.None);
+        Assert.Multiple(() =>
+        {
+            Assert.That(exception!.Message, Does.Contain(storedMessage!.Id.ToString()));
+            Assert.That(storedMessage.MessageName, Is.EqualTo(nameof(OrderPlaced)));
+            Assert.That(storedMessage.MessageFullName, Is.EqualTo(typeof(OrderPlaced).FullName));
+            Assert.That(storedMessage.Payload, Does.Contain(message.Id.ToString()));
+            Assert.That(storedMessage.Handlers.Select(handler => handler.HandlerFullName), Is.EquivalentTo(new[]
+            {
+                typeof(OrderPlacedAsyncFailingHandler).FullName,
+                typeof(OrderPlacedSecondFailingHandler).FullName
+            }), "Only the failed handlers must be stored.");
+            Assert.That(storedMessage.Handlers.Select(handler => handler.FailureReason), Has.All.Not.Empty);
+            Assert.That(storedMessage.FailureReason, Does.Contain(nameof(OrderPlacedAsyncFailingHandler))
+                .And.Contain(nameof(OrderPlacedSecondFailingHandler)));
+            Assert.That(storedMessage.TryCount, Is.Zero);
+            Assert.That(storedMessage.TryAfterAt, Is.EqualTo(storedMessage.CreatedAt), "The message must be retried at once.");
+            Assert.That(storedMessage.UpdatedAt, Is.EqualTo(storedMessage.CreatedAt));
+            Assert.That(storedMessage.CreatedAt.Offset, Is.EqualTo(DateTimeOffset.Now.Offset), "The time must be local.");
+            Assert.That(storedMessage.UpdatedBy, Is.Null);
+            Assert.That(storedMessage.StatusComment, Is.Null);
+        });
+    }
+
+    [Test]
+    public void PublishAsync_MessageWithoutFailingHandler_ShouldNotThrow()
+    {
+        var memoryMessagingManager = CreateManager();
+        var message = new UserCreated { Id = Guid.NewGuid(), Name = "User Name" };
+
+        Assert.DoesNotThrowAsync(() => memoryMessagingManager.PublishAsync(message));
+    }
+
     #endregion
 
     #region OneTimeTearDown
@@ -141,7 +251,16 @@ public class MessageManagerTests : BaseTestEntity
 
     #endregion
 
-    #region Helper methods
+    #region Private Methods
+
+    /// <summary>
+    /// Builds the manager the way the dependency injection does. No repository means the retry is disabled.
+    /// </summary>
+    private MessageManager CreateManager(IFailedMessageRepository repository = null)
+    {
+        return new MessageManager(_serviceProvider, new InMemoryMessagingRetryOptions(), NullLogger<MessageManager>.Instance,
+            repository);
+    }
 
     /// <summary>
     /// Get the all handlers information from the memory messaging manager
