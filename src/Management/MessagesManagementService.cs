@@ -66,10 +66,6 @@ internal sealed class MessagesManagementService(
         if (messageLock is null)
             return MessageActionResult.AlreadyProcessing(id);
 
-        /*
-         * There is no history of the rejected messages, so the reason of the failure is written to the log before the
-         * message is removed. The message lock is taken, so nobody else can change or remove the message meanwhile.
-         */
         var message = await repository.GetByIdAsync(id, cancellationToken);
         if (message is null)
             return MessageActionResult.NotFound(id);
