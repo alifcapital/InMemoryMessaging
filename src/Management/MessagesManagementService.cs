@@ -66,12 +66,20 @@ internal sealed class MessagesManagementService(
         if (messageLock is null)
             return MessageActionResult.AlreadyProcessing(id);
 
-        if (!await repository.DeleteAsync(id, cancellationToken))
+        /*
+         * There is no history of the rejected messages, so the reason of the failure is written to the log before the
+         * message is removed. The message lock is taken, so nobody else can change or remove the message meanwhile.
+         */
+        var message = await repository.GetByIdAsync(id, cancellationToken);
+        if (message is null)
             return MessageActionResult.NotFound(id);
 
         logger.LogInformation(
-            "The failed in-memory message with the {MessageId} id is rejected by {PerformedBy}. Comment: {Comment}",
-            id, request?.PerformedBy, request?.Comment);
+            "The '{MessageName}' failed in-memory message with the {MessageId} id is being rejected by {PerformedBy}. Comment: {Comment}. Failure reason: {FailureReason}",
+            message.MessageName, id, request?.PerformedBy, request?.Comment, message.FailureReason);
+
+        if (!await repository.DeleteAsync(id, cancellationToken))
+            return MessageActionResult.NotFound(id);
 
         return MessageActionResult.Success();
     }
