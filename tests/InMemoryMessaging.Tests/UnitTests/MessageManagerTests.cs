@@ -177,12 +177,12 @@ public class MessageManagerTests : BaseTestEntity
     }
 
     [Test]
-    public void PublishAsync_OneHandlerFailsWhileRetryIsDisabled_ShouldExecuteOtherHandlersAndStoreNothing()
+    public async Task PublishAsync_OneHandlerFailsWhileRetryIsDisabled_ShouldExecuteOtherHandlersAndStoreNothing()
     {
         var memoryMessagingManager = CreateManager();
         var message = new OrderPlaced { Id = Guid.NewGuid() };
 
-        var exception = Assert.ThrowsAsync<InMemoryMessagePublishException>(() => memoryMessagingManager.PublishAsync(message));
+        var exception = await Assert.ThrowsAsync<InMemoryMessagePublishException>(() => memoryMessagingManager.PublishAsync(message));
 
         Assert.Multiple(() =>
         {
@@ -202,7 +202,7 @@ public class MessageManagerTests : BaseTestEntity
         var memoryMessagingManager = CreateManager(repository);
         var message = new OrderPlaced { Id = Guid.NewGuid() };
 
-        var exception = Assert.ThrowsAsync<InMemoryMessagePublishException>(() => memoryMessagingManager.PublishAsync(message));
+        var exception = await Assert.ThrowsAsync<InMemoryMessagePublishException>(() => memoryMessagingManager.PublishAsync(message));
         var page = await repository.GetMessagesAsync(new MessagesFilter(), CancellationToken.None);
 
         Assert.That(page.Items, Has.Count.EqualTo(1));
@@ -231,12 +231,12 @@ public class MessageManagerTests : BaseTestEntity
     }
 
     [Test]
-    public void PublishAsync_MessageWithoutFailingHandler_ShouldNotThrow()
+    public async Task PublishAsync_MessageWithoutFailingHandler_ShouldNotThrow()
     {
         var memoryMessagingManager = CreateManager();
         var message = new UserCreated { Id = Guid.NewGuid(), Name = "User Name" };
 
-        Assert.DoesNotThrowAsync(() => memoryMessagingManager.PublishAsync(message));
+        await Assert.DoesNotThrowAsync(() => memoryMessagingManager.PublishAsync(message));
     }
 
     #endregion
